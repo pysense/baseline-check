@@ -1,11 +1,5 @@
 #!/bin/bash
 # 基线检查脚本 by 1057 @ 2021-05-12
-# TODO
-# 增加参数：是否输出建议
-# 增加参数：是否输出详情
-# 增加参数：是否只输出问题项
-# 多系统适配
-# 支持加固，支持加固后回退
 
 set -e
 date=$(date +%Y%m%d_%H%M%S)
@@ -117,9 +111,8 @@ checkitem **账号安全** 空口令账号
 _result=$(awk -F: '$2==""' /etc/shadow)
 if [[ -n $_result ]]; then
     checkitem_warn
-    #echo "存在空口令账号"
     if [[ $OUTPUT_DETAIL == "yes" ]]; then
-        echo "{{{ 问题详情"
+        echo "{{{ 问题详情 /etc/shadow"
         echo "$_result" | grep --color "^${_result%%:*}"
         echo "}}}"
     fi
@@ -135,15 +128,14 @@ checkitem **账号安全** UID 为 0 的非 root 账号
 _result=$(awk -F: -v IGNORECASE=1 '$1!="root"&&$3==0' /etc/passwd)
 if [[ -n $_result ]]; then
     checkitem_warn
-    #echo "存在 UID 为 0 的非 root 账号"
     if [[ $OUTPUT_DETAIL == "yes" ]]; then
-        echo "{{{ 问题详情"
+        echo "{{{ 问题详情 /etc/passwd"
         echo "$_result" | grep --color "^${_result%%:*}"
         echo "}}}"
     fi
     if [[ $OUTPUT_ADVISE == "yes" ]]; then
         echo "{{{ 修复建议"
-        echo "如果该账户不是自行创建的或者不是 root 重命名的，则应禁用该账号"
+        echo "如果该账号不是自行创建的或者不是 root 重命名的，则应禁用该账号"
         echo "}}}"
     fi
 else checkitem_success; fi
@@ -154,7 +146,7 @@ _result=$(sort -nk3 -t: /etc/passwd | grep -Eiv ":/(sbin/(nologin|shutdown|halt)
 if [[ -n $_result ]]; then
     checkitem_info
     if [[ $OUTPUT_DETAIL == "yes" ]]; then
-        echo "{{{ 问题详情"
+        echo "{{{ 问题详情 /etc/passwd"
         echo "$_result"
         echo "}}}"
     fi
@@ -171,7 +163,6 @@ checkitem **系统配置** 是否关闭 Core Dump
 _result=$(ulimit -c)
 if [[ $_result -ne 0 ]]; then
     checkitem_warn
-    #echo "Core Dump 设置不符合基线配置"
     if [[ $OUTPUT_DETAIL == "yes" ]]; then
         echo "{{{ 问题详情"
         echo "$_result"
@@ -190,7 +181,6 @@ checkitem **环境配置** 检查 PATH 变量是否包含当前目录
 _result=$(echo $PATH | grep -Eo '(^|:)(\.|:|$)' || :)
 if [[ -n $_result ]]; then
     checkitem_warn
-    #echo "PATH 变量存在异常"
     if [[ $OUTPUT_DETAIL == "yes" ]]; then
         echo "{{{ 问题详情"
         echo $PATH | grep -E '(^|:)(\.|:|$)' --color
@@ -208,7 +198,6 @@ checkitem **环境配置** 检查 PATH 变量是否包含权限异常目录
 _result=$(find $(echo ${PATH//:/ }) -type d -perm -777 2> /dev/null || :)
 if [[ -n $_result ]]; then
     checkitem_warn
-    #echo "PATH 变量包含权限异常目录"
     if [[ $OUTPUT_DETAIL == "yes" ]]; then
         echo "{{{ 问题详情"
         echo "$_result"
@@ -221,6 +210,42 @@ if [[ -n $_result ]]; then
     fi
 else checkitem_success; fi
 
+hr
+checkitem **环境配置** umask 值
+_result=$(umask)
+if [[ $_result != 0027 ]]; then
+    checkitem_warn
+    if [[ $OUTPUT_DETAIL == "yes" ]]; then
+        echo "{{{ 问题详情"
+        umask -p
+        echo "}}}"
+    fi
+    if [[ $OUTPUT_ADVISE == "yes" ]]; then
+        echo "{{{ 修复建议"
+        echo "1. 修改配置文件 /etc/profile，设置 umask 0027"
+        echo "2. 执行命令 umask 0027 在当前终端生效"
+        echo "}}}"
+    fi
+else checkitem_success; fi
+
+hr
+checkitem **环境配置** 系统空闲等待时间 TMOUT
+_result=$TMOUT
+if [[ -z $_result ]]; then
+    checkitem_warn
+    if [[ $OUTPUT_DETAIL == "yes" ]]; then
+        echo "{{{ 问题详情"
+        echo "未设置 TMOUT 变量"
+        echo "}}}"
+    fi
+    if [[ $OUTPUT_ADVISE == "yes" ]]; then
+        echo "{{{ 修复建议"
+        echo "1. 修改配置文件 /etc/profile，设置 export TMOUT=600"
+        echo "2. 执行命令 TMOUT=600 在当前终端生效"
+        echo "}}}"
+    fi
+else checkitem_success; fi
+
 # ============================== **密码策略** ==============================
 hr
 checkitem **密码策略** 密码最大过期天数
@@ -228,7 +253,6 @@ _string="PASS_MAX_DAYS $PASS_MAX_DAYS"
 _result=$(awk -v IGNORECASE=1 '/^\s*PASS_MAX_DAYS/{print$2}' /etc/login.defs)
 if [[ $_result -gt $PASS_MAX_DAYS || -z $_result ]]; then
     checkitem_warn
-    #echo "PASS_MAX_DAYS 设置不符合基线配置"
     if [[ $OUTPUT_DETAIL == "yes" ]]; then
         echo "{{{ 问题详情"
         awk -v IGNORECASE=1 '/^\s*PASS_MAX_DAYS/' /etc/login.defs
@@ -262,7 +286,6 @@ _string="PASS_MIN_LEN $PASS_MIN_LEN"
 _result=$(awk -v IGNORECASE=1 '/^\s*PASS_MIN_LEN/{print$2}' /etc/login.defs)
 if [[ $_result -lt $PASS_MIN_LEN || -z $_result ]]; then
     checkitem_warn
-    #echo "PASS_MIN_LEN 设置不符合基线配置"
     if [[ $OUTPUT_DETAIL == "yes" ]]; then
         echo "{{{ 问题详情"
         awk -v IGNORECASE=1 '/^\s*PASS_MIN_LEN/' /etc/login.defs
@@ -297,7 +320,6 @@ _string="PermitEmptyPasswords no"
 _result=$(grep -Ei "^\s*PermitEmptyPasswords\s+yes" /etc/ssh/sshd_config || :)
 if [[ -n $_result ]]; then
     checkitem_warn
-    #echo "PermitEmptyPasswords 设置不符合基线配置"
     if [[ $OUTPUT_DETAIL == "yes" ]]; then
         echo "{{{ 问题详情"
         echo "$_result"
@@ -332,11 +354,11 @@ else checkitem_success; fi
 
 hr
 checkitem **SSH 安全** 是否允许 root 登录
+_file="/etc/ssh/sshd_config"
 _string="PermitRootLogin prohibit-password"
 _result=$(grep -Ei "^\s*PermitRootLogin\s+[^y]+" /etc/ssh/sshd_config || :)
 if [[ -z $_result ]]; then
     checkitem_warn
-    #echo "PermitRootLogin 设置不符合基线配置"
     if [[ $OUTPUT_DETAIL == "yes" ]]; then
         echo "{{{ 问题详情"
         echo "当前配置允许 root 通过密码登录 SSH"
@@ -344,11 +366,13 @@ if [[ -z $_result ]]; then
     fi
     if [[ $OUTPUT_ADVISE == "yes" ]]; then
         echo "{{{ 修复建议"
-        echo "1. 修改配置文件 /etc/ssh/sshd_config，设置 PermitRootLogin prohibit-password（将禁用密码登录，但仍可通过密钥进行验证）"
+        echo "禁用密码登录，保留通过密钥进行登录的能力"
+        echo "1. 修改配置文件 /etc/ssh/sshd_config，设置 PermitRootLogin prohibit-password"
         echo "2. 重启 sshd 服务"
         echo "}}}"
     fi
-    if [[ $BASELINE_APPLY == "yes" ]]; then
+    # TODO 该配置有风险，如果未设置密钥登录将导致 SSH 无法登录
+    if [[ $BASELINE_APPLY == "todo-yes" ]]; then
         echo "{{{ 基线加固"
         echo "#**SSH 安全** 是否允许 root 登录" >> $BASELINE_RESTORE_FILE
         _result=$(sed -nr "/^\s*PermitRootLogin/p" /etc/ssh/sshd_config)
@@ -413,7 +437,6 @@ checkitem **文件权限** 任何人都有写权限的文件
 _result=$(find $(awk -v IGNORECASE=1 '$0~/^\s*[^#]/&&$2!="swap"{print$2}' /etc/fstab) -xdev -type f \( -perm -0002 -a ! -perm -1000 \))
 if [[ -n $_result ]]; then
     checkitem_warn
-    #echo "存在任何人都有写权限的文件"
     if [[ $OUTPUT_DETAIL == "yes" ]]; then
         echo "{{{ 问题详情"
         echo "$_result"
@@ -431,7 +454,6 @@ checkitem **文件权限** 任何人都有写权限的目录
 _result=$(find $(awk -v IGNORECASE=1 '$0~/^\s*[^#]/&&$2!="swap"{print$2}' /etc/fstab) -xdev -type d \( -perm -0002 -a ! -perm -1000 \))
 if [[ -n $_result ]]; then
     checkitem_warn
-    #echo "存在任何人都有写权限的目录"
     if [[ $OUTPUT_DETAIL == "yes" ]]; then
         echo "{{{ 问题详情"
         echo "$_result"
@@ -449,7 +471,6 @@ checkitem **文件权限** 检查没有属主或属组的文件
 _result=$(find $(awk -v IGNORECASE=1 '$0~/^\s*[^#]/&&$2!="swap"{print$2}' /etc/fstab) -xdev -nouser -o -nogroup)
 if [[ -n $_result ]]; then
     checkitem_warn
-    #echo "存在没有属主或属组的文件"
     if [[ $OUTPUT_DETAIL == "yes" ]]; then
         echo "{{{ 问题详情"
         echo "$_result"
@@ -470,7 +491,6 @@ checkitem **文件权限** 检查可疑隐藏文件
 _result=$(find $(awk -v IGNORECASE=1 '$0~/^\s*[^#]/&&$2!="swap"{print$2}' /etc/fstab) -xdev -name ".. *" -o -name "...*")
 if [[ -n $_result ]]; then
     checkitem_warn
-    #echo "存在可疑隐藏文件"
     if [[ $OUTPUT_DETAIL == "yes" ]]; then
         echo "{{{ 问题详情"
         echo "$_result"
@@ -488,7 +508,6 @@ checkitem **文件权限** 检查 SUID/SGID 文件
 _result=$(find $(awk -v IGNORECASE=1 '$0~/^\s*[^#]/&&$2!="swap"{print$2}' /etc/fstab) -xdev \( -perm -4000 -o -perm -2000 \))
 if [[ -n $_result ]]; then
     checkitem_warn
-    #echo "存在可疑 SUID/SGID 文件"
     if [[ $OUTPUT_DETAIL == "yes" ]]; then
         echo "{{{ 问题详情"
         for i in $_result; do
@@ -512,7 +531,6 @@ _string="authpriv.* /var/log/secure"
 _result=$(grep -Ei "^\s*authpriv\." /etc/rsyslog.conf || :)
 if [[ -z $_result ]]; then
     checkitem_warn
-    #echo "authpriv.* 设置不符合基线配置"
     if [[ $OUTPUT_DETAIL == "yes" ]]; then
         echo "{{{ 问题详情"
         echo "未配置 authpriv.*"
@@ -530,7 +548,6 @@ checkitem **日志审计** 是否加载日志审计内核模块
 _result=$(auditctl -s | awk '/^enabled/{print$2}')
 if [[ $_result -ne 1 ]]; then
     checkitem_warn
-    #echo "未加载日志审计内核模块"
     if [[ $OUTPUT_DETAIL == "yes" ]]; then
         echo "{{{ 问题详情"
         auditctl -s | awk '/^enabled/'
@@ -548,7 +565,6 @@ checkitem **日志审计** 是否开启日志审计服务
 _result=$(systemctl status auditd | grep "active (running)" || :)
 if [[ -z $_result ]]; then
     checkitem_warn
-    #echo "未开启日志审计服务"
     if [[ $OUTPUT_DETAIL == "yes" ]]; then
         echo "{{{ 问题详情"
         systemctl status auditd | grep -i "Active:" || :
@@ -568,7 +584,6 @@ checkitem **日志审计** 是否开启 cron 守护进程日志
 _result=$(grep -Ei "^\s*cron\." /etc/rsyslog.conf || :)
 if [[ -z $_result ]]; then
     checkitem_warn
-    #echo "cron.* 设置不符合基线配置"
     if [[ $OUTPUT_DETAIL == "yes" ]]; then
         echo "{{{ 问题详情"
         echo "未配置 cron.*"
@@ -583,8 +598,9 @@ else checkitem_success; fi
 
 # ============================== **网络配置** ==============================
 hr
-checkitem **网络配置** 是否允许 ping 请求
+checkitem **网络配置** sysctl 允许 ping 请求
 # sysctl net.ipv4.icmp_echo_ignore_all | awk '{print$3}'
+_string="net.ipv4.icmp_echo_ignore_all = 0"
 _result=$(cat /proc/sys/net/ipv4/icmp_echo_ignore_all)
 if [[ $_result -ne 0 ]]; then
     checkitem_warn
@@ -598,6 +614,21 @@ if [[ $_result -ne 0 ]]; then
         echo "1. 修改配置文件 /etc/sysctl.conf，设置 net.ipv4.icmp_echo_ignore_all = 0"
         echo "2. 执行命令：sysctl net.ipv4.icmp_echo_ignore_all=0"
         #echo "执行命令：echo "0" > /proc/sys/net/ipv4/icmp_echo_ignore_all"
+        echo "}}}"
+    fi
+    if [[ $BASELINE_APPLY == "yes" ]]; then
+        echo "{{{ 基线加固"
+        echo "#**网络配置** sysctl 允许 ping 请求" >> $BASELINE_RESTORE_FILE
+        echo "sysctl $(sysctl net.ipv4.icmp_echo_ignore_all | sed 's/ //g')" >> $BASELINE_RESTORE_FILE
+        _result=$(sed -nr "/^\s*net.ipv4.icmp_echo_ignore_all/p" /etc/sysctl.conf)
+        if [[ -n $_result ]]; then
+            sed -ir "/^\s*net.ipv4.icmp_echo_ignore_all/c $_string" /etc/sysctl.conf
+            echo "sed -ir \"/^\s*net.ipv4.icmp_echo_ignore_all/c $_result\" /etc/sysctl.conf" >> $BASELINE_RESTORE_FILE
+        else
+            sed -ir "$ a $_string" /etc/sysctl.conf
+            echo "sed -ir \"/^\s*net.ipv4.icmp_echo_ignore_all/d\" /etc/sysctl.conf " >> $BASELINE_RESTORE_FILE
+        fi
+        sysctl net.ipv4.icmp_echo_ignore_all=0
         echo "}}}"
     fi
 else checkitem_success; fi
