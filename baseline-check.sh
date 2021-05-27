@@ -507,20 +507,27 @@ hr
 checkitem **文件权限** 检查 SUID/SGID 文件
 _result=$(find $(awk -v IGNORECASE=1 '$0~/^\s*[^#]/&&$2!="swap"{print$2}' /etc/fstab) -xdev \( -perm -4000 -o -perm -2000 \))
 if [[ -n $_result ]]; then
-    checkitem_warn
-    if [[ $OUTPUT_DETAIL == "yes" ]]; then
-        echo "{{{ 问题详情"
-        for i in $_result; do
-            if [[ ! ${SUID_SGID_FILES[@]} =~ "$i" ]]; then
+    for i in $_result; do
+        if [[ ! ${SUID_SGID_FILES[@]} =~ "$i" ]]; then
+            _SUID_SGID_FILES+=($i)
+        fi
+    done
+    if [[ ${#_SUID_SGID_FILES[@]} > 0 ]]; then
+        checkitem_warn
+        if [[ $OUTPUT_DETAIL == "yes" ]]; then
+            echo "{{{ 问题详情"
+            for i in ${_SUID_SGID_FILES[@]}; do
                 echo $i
-            fi
-        done
-        echo "}}}"
-    fi
-    if [[ $OUTPUT_ADVISE == "yes" ]]; then
-        echo "{{{ 修复建议"
-        echo "检查输出文件/目录权限是否异常"
-        echo "}}}"
+            done
+            echo "}}}"
+        fi
+        if [[ $OUTPUT_ADVISE == "yes" ]]; then
+            echo "{{{ 修复建议"
+            echo "检查输出文件/目录权限是否异常"
+            echo "}}}"
+        fi
+    else
+        checkitem_success
     fi
 else checkitem_success; fi
 
