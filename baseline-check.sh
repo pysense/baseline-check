@@ -4,6 +4,8 @@
 set -e
 date=$(date +%Y%m%d_%H%M%S)
 
+if [[ -f config ]]; then source config; fi
+
 # 脚本配置项
 OUTPUT_SILENT=${OUTPUT_SILENT:-no}                  # 是否输出基线符合项
 OUTPUT_DETAIL=${OUTPUT_DETAIL:-yes}                 # 是否输出详情
@@ -39,7 +41,6 @@ SUID_SGID_FILES=(
 /usr/bin/locate
 /usr/bin/at
 )
-if [[ -f config ]]; then source config; fi
 
 # 基线配置建议（参考 CIS）
 PASS_MAX_DAYS=90
@@ -108,21 +109,27 @@ if [[ ${1:-} == "-h" ]]; then usage; fi
 
 # main
 # ============================== **账号安全** ==============================
-checkitem **账号安全** 空口令账号
-_result=$(awk -F: '$2==""' /etc/shadow)
-if [[ -n $_result ]]; then
-    checkitem_warn
-    if [[ $OUTPUT_DETAIL == "yes" ]]; then
-        echo "{{{ 问题详情 /etc/shadow"
-        echo "$_result" | grep --color "^${_result%%:*}"
-        echo "}}}"
-    fi
-    if [[ $OUTPUT_ADVISE == "yes" ]]; then
-        echo "{{{ 修复建议"
-        echo "为空口令账号设置密码（passwd <username>）或锁定该账号（passwd -l <username>）"
-        echo "}}}"
-    fi
-else checkitem_success; fi
+_item="**账号安全** 是否存在空口令账号"
+_enable=1
+_group="AccountSecurity"
+if [[ $_enable == 1 ]]; then
+    checkitem $_item
+    _result=$(awk -F: '$2==""' /etc/shadow)
+    if [[ -n $_result ]]; then
+        checkitem_warn
+        if [[ $OUTPUT_DETAIL == "yes" ]]; then
+            echo "{{{ 问题详情"
+            echo "/etc/shadow 文件异常"
+            echo "$_result" | grep --color "^${_result%%:*}"
+            echo "}}}"
+        fi
+        if [[ $OUTPUT_ADVISE == "yes" ]]; then
+            echo "{{{ 修复建议"
+            echo "为空口令账号设置密码（passwd <username>）或锁定该账号（passwd -l <username>）"
+            echo "}}}"
+        fi
+    else checkitem_success; fi
+fi
 
 checkitem **账号安全** UID 为 0 的非 root 账号
 _result=$(awk -F: -v IGNORECASE=1 '$1!="root"&&$3==0' /etc/passwd)
@@ -242,7 +249,7 @@ else checkitem_success; fi
 
 # ============================== **密码策略** ==============================
 _item="**密码策略** 密码最长使用天数"
-_enable=1
+_enable=${login_defs_pass_max_days:-1}
 _group="AccountSecurity"
 if [[ $_enable == 1 ]]; then
     checkitem $_item
@@ -282,7 +289,7 @@ if [[ $_enable == 1 ]]; then
 fi
 
 _item="**密码策略** 密码最小长度"
-_enable=1
+_enable=${login_defs_pass_min_len:-1}
 _group="AccountSecurity"
 if [[ $_enable == 1 ]]; then
     checkitem $_item
@@ -323,7 +330,7 @@ fi
 
 # ============================== **SSH 安全** ==============================
 _item="**SSH 安全** 禁止 SSH 空口令登录"
-_enable=1
+_enable=${sshd_config_permitemptypasswords_no:-1}
 _group="SSHSecurity"
 if [[ $_enable == 1 ]]; then
     checkitem $_item
@@ -368,7 +375,7 @@ if [[ $_enable == 1 ]]; then
 fi
 
 _item="**SSH 安全** 禁止 root 账号通过密码登录 SSH"
-_enable=1
+_enable=${sshd_config_permitrootlogin_prohibit_password:-1}
 _group="SSHSecurity"
 if [[ $_enable == 1 ]]; then
     checkitem $_item
