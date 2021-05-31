@@ -131,121 +131,158 @@ if [[ $_enable == 1 ]]; then
     else checkitem_success; fi
 fi
 
-checkitem **账号安全** UID 为 0 的非 root 账号
-_result=$(awk -F: -v IGNORECASE=1 '$1!="root"&&$3==0' /etc/passwd)
-if [[ -n $_result ]]; then
-    checkitem_warn
-    if [[ $OUTPUT_DETAIL == "yes" ]]; then
-        echo "{{{ 问题详情 /etc/passwd"
-        echo "$_result" | grep --color "^${_result%%:*}"
-        echo "}}}"
-    fi
-    if [[ $OUTPUT_ADVISE == "yes" ]]; then
-        echo "{{{ 修复建议"
-        echo "如果该账号不是自行创建的或者不是 root 重命名的，则应禁用该账号"
-        echo "}}}"
-    fi
-else checkitem_success; fi
+_item="**账号安全** 是否存在 UID 为 0 的非 root 账号"
+_enable=1
+_group="AccountSecurity"
+if [[ $_enable == 1 ]]; then
+    checkitem $_item
+    _result=$(awk -F: -v IGNORECASE=1 '$1!="root"&&$3==0' /etc/passwd)
+    if [[ -n $_result ]]; then
+        checkitem_warn
+        if [[ $OUTPUT_DETAIL == "yes" ]]; then
+            echo "{{{ 问题详情"
+            echo "/etc/passwd 文件异常"
+            echo "$_result" | grep --color "^${_result%%:*}"
+            echo "}}}"
+        fi
+        if [[ $OUTPUT_ADVISE == "yes" ]]; then
+            echo "{{{ 修复建议"
+            echo "如果该账号不是自行创建的或者不是 root 重命名的，则应禁用该账号"
+            echo "}}}"
+        fi
+    else checkitem_success; fi
+fi
 
-checkitem **账号安全** 可登录账号
-_result=$(sort -nk3 -t: /etc/passwd | grep -Eiv ":/(sbin/(nologin|shutdown|halt)|bin/(sync|false))$" || :)
-if [[ -n $_result ]]; then
-    checkitem_info
-    if [[ $OUTPUT_DETAIL == "yes" ]]; then
-        echo "{{{ 问题详情 /etc/passwd"
-        echo "$_result"
-        echo "}}}"
-    fi
-    if [[ $OUTPUT_ADVISE == "yes" ]]; then
-        echo "{{{ 修复建议"
-        echo "检查是否存在未知账号或无需登录权限的账号，如 MySQL 启动账号"
-        echo "}}}"
+_item="**账号安全** 可登录账号"
+_enable=1
+_group="AccountSecurity"
+if [[ $_enable == 1 ]]; then
+    checkitem $_item
+    _result=$(sort -nk3 -t: /etc/passwd | grep -Eiv ":/(sbin/(nologin|shutdown|halt)|bin/(sync|false))$" || :)
+    if [[ -n $_result ]]; then
+        checkitem_info
+        if [[ $OUTPUT_DETAIL == "yes" ]]; then
+            echo "{{{ 问题详情"
+            echo "$_result"
+            echo "}}}"
+        fi
+        if [[ $OUTPUT_ADVISE == "yes" ]]; then
+            echo "{{{ 修复建议"
+            echo "检查是否存在未知账号或无需登录权限的账号，如 MySQL 启动账号"
+            echo "}}}"
+        fi
     fi
 fi
 
 # ============================== **系统配置** ==============================
-checkitem **系统配置** 是否关闭 Core Dump
-_result=$(ulimit -c)
-if [[ $_result -ne 0 ]]; then
-    checkitem_warn
-    if [[ $OUTPUT_DETAIL == "yes" ]]; then
-        echo "{{{ 问题详情"
-        echo "$_result"
-        echo "}}}"
-    fi
-    if [[ $OUTPUT_ADVISE == "yes" ]]; then
-        echo "{{{ 修复建议"
-        echo "修改配置文件 /etc/security/limits.conf，设置 * soft core 0 及 * hard core 0"
-        echo "}}}"
-    fi
-else checkitem_success; fi
+_item="**系统配置** 是否关闭 Core Dump"
+_enable=1
+_group=""
+if [[ $_enable == 1 ]]; then
+    checkitem $_item
+    _file="/etc/security/limits.conf"
+    _result=$(ulimit -c)
+    if [[ $_result -ne 0 ]]; then
+        checkitem_warn
+        if [[ $OUTPUT_DETAIL == "yes" ]]; then
+            echo "{{{ 问题详情"
+            echo "$_result"
+            echo "}}}"
+        fi
+        if [[ $OUTPUT_ADVISE == "yes" ]]; then
+            echo "{{{ 修复建议"
+            echo "修改配置文件 $_file，设置 * soft core 0 及 * hard core 0"
+            echo "}}}"
+        fi
+    else checkitem_success; fi
+fi
 
 # ============================== **环境配置** ==============================
-checkitem **环境配置** 检查 PATH 变量是否包含当前目录
-_result=$(echo $PATH | grep -Eo '(^|:)(\.|:|$)' || :)
-if [[ -n $_result ]]; then
-    checkitem_warn
-    if [[ $OUTPUT_DETAIL == "yes" ]]; then
-        echo "{{{ 问题详情"
-        echo $PATH | grep -E '(^|:)(\.|:|$)' --color
-        echo "}}}"
-    fi
-    if [[ $OUTPUT_ADVISE == "yes" ]]; then
-        echo "{{{ 修复建议"
-        echo "检查 /etc/profile,~/.bash_profile,~/.bashrc 等配置文件中定义 PATH 变量的位置，移除非法的路径。"
-        echo "}}}"
-    fi
-else checkitem_success; fi
+_item="**环境配置** 检查 PATH 变量是否包含当前目录"
+_enable=1
+_group=""
+if [[ $_enable == 1 ]]; then
+    checkitem $_item
+    _result=$(echo $PATH | grep -Eo '(^|:)(\.|:|$)' || :)
+    if [[ -n $_result ]]; then
+        checkitem_warn
+        if [[ $OUTPUT_DETAIL == "yes" ]]; then
+            echo "{{{ 问题详情"
+            echo $PATH | grep -E '(^|:)(\.|:|$)' --color
+            echo "}}}"
+        fi
+        if [[ $OUTPUT_ADVISE == "yes" ]]; then
+            echo "{{{ 修复建议"
+            echo "检查 /etc/profile,~/.bash_profile,~/.bashrc 等配置文件中定义 PATH 变量的位置，移除非法的路径。"
+            echo "}}}"
+        fi
+    else checkitem_success; fi
+fi
 
-checkitem **环境配置** 检查 PATH 变量是否包含权限异常目录
-_result=$(find $(echo ${PATH//:/ }) -type d -perm -777 2> /dev/null || :)
-if [[ -n $_result ]]; then
-    checkitem_warn
-    if [[ $OUTPUT_DETAIL == "yes" ]]; then
-        echo "{{{ 问题详情"
-        echo "$_result"
-        echo "}}}"
-    fi
-    if [[ $OUTPUT_ADVISE == "yes" ]]; then
-        echo "{{{ 修复建议"
-        echo "设置目录为正常权限，从 PATH 中移除可疑目录"
-        echo "}}}"
-    fi
-else checkitem_success; fi
+_item="**环境配置** 检查 PATH 变量是否包含权限异常目录"
+_enable=1
+_group=""
+if [[ $_enable == 1 ]]; then
+    checkitem $_item
+    _result=$(find $(echo ${PATH//:/ }) -type d -perm -777 2> /dev/null || :)
+    if [[ -n $_result ]]; then
+        checkitem_warn
+        if [[ $OUTPUT_DETAIL == "yes" ]]; then
+            echo "{{{ 问题详情"
+            echo "$_result"
+            echo "}}}"
+        fi
+        if [[ $OUTPUT_ADVISE == "yes" ]]; then
+            echo "{{{ 修复建议"
+            echo "设置目录为正常权限，从 PATH 中移除可疑目录"
+            echo "}}}"
+        fi
+    else checkitem_success; fi
+fi
 
-checkitem **环境配置** umask 值
-_result=$(umask)
-if [[ $_result != 0027 ]]; then
-    checkitem_warn
-    if [[ $OUTPUT_DETAIL == "yes" ]]; then
-        echo "{{{ 问题详情"
-        umask -p
-        echo "}}}"
-    fi
-    if [[ $OUTPUT_ADVISE == "yes" ]]; then
-        echo "{{{ 修复建议"
-        echo "1. 修改配置文件 /etc/profile，设置 umask 0027"
-        echo "2. 执行命令 umask 0027 在当前终端生效"
-        echo "}}}"
-    fi
-else checkitem_success; fi
+_item="**环境配置** umask 值"
+_enable=1
+_group=""
+if [[ $_enable == 1 ]]; then
+    checkitem $_item
+    _result=$(umask)
+    if [[ $_result != 0027 ]]; then
+        checkitem_warn
+        if [[ $OUTPUT_DETAIL == "yes" ]]; then
+            echo "{{{ 问题详情"
+            umask -p
+            echo "}}}"
+        fi
+        if [[ $OUTPUT_ADVISE == "yes" ]]; then
+            echo "{{{ 修复建议"
+            echo "1. 修改配置文件 /etc/profile，设置 umask 0027"
+            echo "2. 执行命令 umask 0027 在当前终端生效"
+            echo "}}}"
+        fi
+    else checkitem_success; fi
+fi
 
-checkitem **环境配置** 系统空闲等待时间 TMOUT
-_result=$TMOUT
-if [[ -z $_result ]]; then
-    checkitem_warn
-    if [[ $OUTPUT_DETAIL == "yes" ]]; then
-        echo "{{{ 问题详情"
-        echo "未设置 TMOUT 变量"
-        echo "}}}"
-    fi
-    if [[ $OUTPUT_ADVISE == "yes" ]]; then
-        echo "{{{ 修复建议"
-        echo "1. 修改配置文件 /etc/profile，设置 export TMOUT=600"
-        echo "2. 执行命令 TMOUT=600 在当前终端生效"
-        echo "}}}"
-    fi
-else checkitem_success; fi
+_item="**环境配置** 系统空闲等待时间 TMOUT"
+_enable=1
+_group=""
+if [[ $_enable == 1 ]]; then
+    checkitem $_item
+    _result=$TMOUT
+    if [[ -z $_result ]]; then
+        checkitem_warn
+        if [[ $OUTPUT_DETAIL == "yes" ]]; then
+            echo "{{{ 问题详情"
+            echo "未设置 TMOUT 变量"
+            echo "}}}"
+        fi
+        if [[ $OUTPUT_ADVISE == "yes" ]]; then
+            echo "{{{ 修复建议"
+            echo "1. 修改配置文件 /etc/profile，设置 export TMOUT=600"
+            echo "2. 执行命令 TMOUT=600 在当前终端生效"
+            echo "}}}"
+        fi
+    else checkitem_success; fi
+fi
 
 # ============================== **密码策略** ==============================
 _item="**密码策略** 密码最长使用天数"
@@ -465,201 +502,254 @@ if [[ $_enable == 1 ]]; then
 fi
 
 # ============================== **文件权限** ==============================
-checkitem **文件权限** 任何人都有写权限的文件
-_result=$(find $(awk -v IGNORECASE=1 '$0~/^\s*[^#]/&&$2!="swap"{print$2}' /etc/fstab) -xdev -type f \( -perm -0002 -a ! -perm -1000 \))
-if [[ -n $_result ]]; then
-    checkitem_warn
-    if [[ $OUTPUT_DETAIL == "yes" ]]; then
-        echo "{{{ 问题详情"
-        echo "$_result"
-        echo "}}}"
-    fi
-    if [[ $OUTPUT_ADVISE == "yes" ]]; then
-        echo "{{{ 修复建议"
-        echo "检查文件权限是否正常"
-        echo "}}}"
-    fi
-else checkitem_success; fi
-
-checkitem **文件权限** 任何人都有写权限的目录
-_result=$(find $(awk -v IGNORECASE=1 '$0~/^\s*[^#]/&&$2!="swap"{print$2}' /etc/fstab) -xdev -type d \( -perm -0002 -a ! -perm -1000 \))
-if [[ -n $_result ]]; then
-    checkitem_warn
-    if [[ $OUTPUT_DETAIL == "yes" ]]; then
-        echo "{{{ 问题详情"
-        echo "$_result"
-        echo "}}}"
-    fi
-    if [[ $OUTPUT_ADVISE == "yes" ]]; then
-        echo "{{{ 修复建议"
-        echo "检查目录权限是否正常"
-        echo "}}}"
-    fi
-else checkitem_success; fi
-
-checkitem **文件权限** 检查没有属主或属组的文件
-_result=$(find $(awk -v IGNORECASE=1 '$0~/^\s*[^#]/&&$2!="swap"{print$2}' /etc/fstab) -xdev -nouser -o -nogroup)
-if [[ -n $_result ]]; then
-    checkitem_warn
-    if [[ $OUTPUT_DETAIL == "yes" ]]; then
-        echo "{{{ 问题详情"
-        echo "$_result"
-        echo "}}}"
-    fi
-    if [[ $OUTPUT_ADVISE == "yes" ]]; then
-        echo "{{{ 修复建议"
-        echo "可能情况："
-        echo "1. 变更过 /etc/passwd 账号 UID/GID"
-        echo "2. 文件所属账号/组已经删除"
-        echo "3. 从其他主机下载的压缩包中解压的文件"
-        echo "}}}"
-    fi
-else checkitem_success; fi
-
-checkitem **文件权限** 检查可疑隐藏文件
-_result=$(find $(awk -v IGNORECASE=1 '$0~/^\s*[^#]/&&$2!="swap"{print$2}' /etc/fstab) -xdev -name ".. *" -o -name "...*")
-if [[ -n $_result ]]; then
-    checkitem_warn
-    if [[ $OUTPUT_DETAIL == "yes" ]]; then
-        echo "{{{ 问题详情"
-        echo "$_result"
-        echo "}}}"
-    fi
-    if [[ $OUTPUT_ADVISE == "yes" ]]; then
-        echo "{{{ 修复建议"
-        echo "检查输出文件/目录是否异常"
-        echo "}}}"
-    fi
-else checkitem_success; fi
-
-checkitem **文件权限** 检查 SUID/SGID 文件
-_result=$(find $(awk -v IGNORECASE=1 '$0~/^\s*[^#]/&&$2!="swap"{print$2}' /etc/fstab) -xdev \( -perm -4000 -o -perm -2000 \))
-if [[ -n $_result ]]; then
-    for i in $_result; do
-        if [[ ! ${SUID_SGID_FILES[@]} =~ "$i" ]]; then
-            _SUID_SGID_FILES+=($i)
-        fi
-    done
-    if [[ ${#_SUID_SGID_FILES[@]} > 0 ]]; then
+_item="**文件权限** 任何人都有写权限的文件"
+_enable=1
+_group=""
+if [[ $_enable == 1 ]]; then
+    checkitem $_item
+    _result=$(find $(awk -v IGNORECASE=1 '$0~/^\s*[^#]/&&$2!="swap"{print$2}' /etc/fstab) -xdev -type f \( -perm -0002 -a ! -perm -1000 \))
+    if [[ -n $_result ]]; then
         checkitem_warn
         if [[ $OUTPUT_DETAIL == "yes" ]]; then
             echo "{{{ 问题详情"
-            for i in ${_SUID_SGID_FILES[@]}; do
-                echo $i
-            done
+            echo "$_result"
             echo "}}}"
         fi
         if [[ $OUTPUT_ADVISE == "yes" ]]; then
             echo "{{{ 修复建议"
-            echo "检查输出文件/目录权限是否异常"
+            echo "检查文件权限是否正常"
             echo "}}}"
         fi
-    else
-        checkitem_success
-    fi
-else checkitem_success; fi
+    else checkitem_success; fi
+fi
+
+_item="**文件权限** 任何人都有写权限的目录"
+_enable=1
+_group=""
+if [[ $_enable == 1 ]]; then
+    checkitem $_item
+    _result=$(find $(awk -v IGNORECASE=1 '$0~/^\s*[^#]/&&$2!="swap"{print$2}' /etc/fstab) -xdev -type d \( -perm -0002 -a ! -perm -1000 \))
+    if [[ -n $_result ]]; then
+        checkitem_warn
+        if [[ $OUTPUT_DETAIL == "yes" ]]; then
+            echo "{{{ 问题详情"
+            echo "$_result"
+            echo "}}}"
+        fi
+        if [[ $OUTPUT_ADVISE == "yes" ]]; then
+            echo "{{{ 修复建议"
+            echo "检查目录权限是否正常"
+            echo "}}}"
+        fi
+    else checkitem_success; fi
+fi
+
+_item="**文件权限** 检查没有属主或属组的文件"
+_enable=1
+_group=""
+if [[ $_enable == 1 ]]; then
+    checkitem $_item
+    _result=$(find $(awk -v IGNORECASE=1 '$0~/^\s*[^#]/&&$2!="swap"{print$2}' /etc/fstab) -xdev -nouser -o -nogroup)
+    if [[ -n $_result ]]; then
+        checkitem_warn
+        if [[ $OUTPUT_DETAIL == "yes" ]]; then
+            echo "{{{ 问题详情"
+            echo "$_result"
+            echo "}}}"
+        fi
+        if [[ $OUTPUT_ADVISE == "yes" ]]; then
+            echo "{{{ 修复建议"
+            echo "可能情况："
+            echo "1. 变更过 /etc/passwd 账号 UID/GID"
+            echo "2. 文件所属账号/组已经删除"
+            echo "3. 从其他主机下载的压缩包中解压的文件"
+            echo "}}}"
+        fi
+    else checkitem_success; fi
+fi
+
+_item="**文件权限** 检查可疑隐藏文件"
+_enable=1
+_group=""
+if [[ $_enable == 1 ]]; then
+    checkitem $_item
+    _result=$(find $(awk -v IGNORECASE=1 '$0~/^\s*[^#]/&&$2!="swap"{print$2}' /etc/fstab) -xdev -name ".. *" -o -name "...*")
+    if [[ -n $_result ]]; then
+        checkitem_warn
+        if [[ $OUTPUT_DETAIL == "yes" ]]; then
+            echo "{{{ 问题详情"
+            echo "$_result"
+            echo "}}}"
+        fi
+        if [[ $OUTPUT_ADVISE == "yes" ]]; then
+            echo "{{{ 修复建议"
+            echo "检查输出文件/目录是否异常"
+            echo "}}}"
+        fi
+    else checkitem_success; fi
+fi
+
+_item="**文件权限** 检查 SUID/SGID 文件"
+_enable=1
+_group=""
+if [[ $_enable == 1 ]]; then
+    checkitem $_item
+    _result=$(find $(awk -v IGNORECASE=1 '$0~/^\s*[^#]/&&$2!="swap"{print$2}' /etc/fstab) -xdev \( -perm -4000 -o -perm -2000 \))
+    if [[ -n $_result ]]; then
+        for i in $_result; do
+            if [[ ! ${SUID_SGID_FILES[@]} =~ "$i" ]]; then
+                _SUID_SGID_FILES+=($i)
+            fi
+        done
+        if [[ ${#_SUID_SGID_FILES[@]} > 0 ]]; then
+            checkitem_warn
+            if [[ $OUTPUT_DETAIL == "yes" ]]; then
+                echo "{{{ 问题详情"
+                for i in ${_SUID_SGID_FILES[@]}; do
+                    echo $i
+                done
+                echo "}}}"
+            fi
+            if [[ $OUTPUT_ADVISE == "yes" ]]; then
+                echo "{{{ 修复建议"
+                echo "检查输出文件/目录权限是否异常"
+                echo "}}}"
+            fi
+        else
+            checkitem_success
+        fi
+    else checkitem_success; fi
+fi
 
 # ============================== **日志审计** ==============================
-checkitem **日志审计** 是否开启安全日志
-_string="authpriv.* /var/log/secure"
-_result=$(grep -Ei "^\s*authpriv\." /etc/rsyslog.conf || :)
-if [[ -z $_result ]]; then
-    checkitem_warn
-    if [[ $OUTPUT_DETAIL == "yes" ]]; then
-        echo "{{{ 问题详情"
-        echo "未配置 authpriv.*"
-        echo "}}}"
-    fi
-    if [[ $OUTPUT_ADVISE == "yes" ]]; then
-        echo "{{{ 修复建议"
-        echo "修改配置文件 /etc/rsyslog.conf，设置 authpriv.* /var/log/secure"
-        echo "}}}"
-    fi
-else checkitem_success; fi
+_item="**日志审计** 是否开启安全日志"
+_enable=1
+_group=""
+if [[ $_enable == 1 ]]; then
+    checkitem $_item
+    _file="/etc/rsyslog.conf"
+    _string="authpriv.* /var/log/secure"
+    _result=$(awk -v IGNORECASE=1 '/^\s*authpriv\./' $_file)
+    if [[ -z $_result ]]; then
+        checkitem_warn
+        if [[ $OUTPUT_DETAIL == "yes" ]]; then
+            echo "{{{ 问题详情"
+            echo "未配置 authpriv.*"
+            echo "}}}"
+        fi
+        if [[ $OUTPUT_ADVISE == "yes" ]]; then
+            echo "{{{ 修复建议"
+            echo "修改配置文件 $_file，设置 $_string"
+            echo "}}}"
+        fi
+    else checkitem_success; fi
+fi
 
-checkitem **日志审计** 是否加载日志审计内核模块
-_result=$(auditctl -s | awk '/^enabled/{print$2}')
-if [[ $_result -ne 1 ]]; then
-    checkitem_warn
-    if [[ $OUTPUT_DETAIL == "yes" ]]; then
-        echo "{{{ 问题详情"
-        auditctl -s | awk '/^enabled/'
-        echo "}}}"
-    fi
-    if [[ $OUTPUT_ADVISE == "yes" ]]; then
-        echo "{{{ 修复建议"
-        echo "执行命令 auditctl -e 1 启用日志审计内核模块"
-        echo "}}}"
-    fi
-else checkitem_success; fi
+_item="**日志审计** 是否加载日志审计内核模块"
+_enable=1
+_group=""
+if [[ $_enable == 1 ]]; then
+    checkitem $_item
+    _result=$(auditctl -s | awk '/^enabled/{print$2}')
+    if [[ $_result -ne 1 ]]; then
+        checkitem_warn
+        if [[ $OUTPUT_DETAIL == "yes" ]]; then
+            echo "{{{ 问题详情"
+            auditctl -s | awk '/^enabled/'
+            echo "}}}"
+        fi
+        if [[ $OUTPUT_ADVISE == "yes" ]]; then
+            echo "{{{ 修复建议"
+            echo "执行命令 auditctl -e 1 启用日志审计内核模块"
+            echo "}}}"
+        fi
+    else checkitem_success; fi
+fi
 
-checkitem **日志审计** 是否开启日志审计服务
-_result=$(systemctl status auditd | grep "active (running)" || :)
-if [[ -z $_result ]]; then
-    checkitem_warn
-    if [[ $OUTPUT_DETAIL == "yes" ]]; then
-        echo "{{{ 问题详情"
-        systemctl status auditd | grep -i "Active:" || :
-        echo "}}}"
-    fi
-    if [[ $OUTPUT_ADVISE == "yes" ]]; then
-        echo "{{{ 修复建议"
-        echo "执行以下命令启用日志审计服务"
-        echo "systemctl enable auditd"
-        echo "systemctl start auditd"
-        echo "}}}"
-    fi
-else checkitem_success; fi
+_item="**日志审计** 是否开启日志审计服务"
+_enable=1
+_group=""
+if [[ $_enable == 1 ]]; then
+    checkitem $_item
+    _result=$(systemctl status auditd | grep "active (running)" || :)
+    if [[ -z $_result ]]; then
+        checkitem_warn
+        if [[ $OUTPUT_DETAIL == "yes" ]]; then
+            echo "{{{ 问题详情"
+            systemctl status auditd | grep -i "Active:" || :
+            echo "}}}"
+        fi
+        if [[ $OUTPUT_ADVISE == "yes" ]]; then
+            echo "{{{ 修复建议"
+            echo "执行以下命令启用日志审计服务"
+            echo "systemctl enable auditd"
+            echo "systemctl start auditd"
+            echo "}}}"
+        fi
+    else checkitem_success; fi
+fi
 
-checkitem **日志审计** 是否开启 cron 守护进程日志
-_result=$(grep -Ei "^\s*cron\." /etc/rsyslog.conf || :)
-if [[ -z $_result ]]; then
-    checkitem_warn
-    if [[ $OUTPUT_DETAIL == "yes" ]]; then
-        echo "{{{ 问题详情"
-        echo "未配置 cron.*"
-        echo "}}}"
-    fi
-    if [[ $OUTPUT_ADVISE == "yes" ]]; then
-        echo "{{{ 修复建议"
-        echo "修改配置文件 /etc/rsyslog.conf，设置 cron.* /var/log/cron"
-        echo "}}}"
-    fi
-else checkitem_success; fi
+_item="**日志审计** 是否开启 cron 守护进程日志"
+_enable=1
+_group=""
+if [[ $_enable == 1 ]]; then
+    checkitem $_item
+    _file="/etc/rsyslog.conf"
+    _string="cron.* /var/log/cron"
+    _result=$(awk -v IGNORECASE=1 '/^\s*cron\./' $_file)
+    if [[ -z $_result ]]; then
+        checkitem_warn
+        if [[ $OUTPUT_DETAIL == "yes" ]]; then
+            echo "{{{ 问题详情"
+            echo "未配置 cron.*"
+            echo "}}}"
+        fi
+        if [[ $OUTPUT_ADVISE == "yes" ]]; then
+            echo "{{{ 修复建议"
+            echo "修改配置文件 $_file，设置 $_string"
+            echo "}}}"
+        fi
+    else checkitem_success; fi
+fi
 
 # ============================== **网络配置** ==============================
-checkitem **网络配置** sysctl 允许 ping 请求
-# sysctl net.ipv4.icmp_echo_ignore_all | awk '{print$3}'
-_string="net.ipv4.icmp_echo_ignore_all = 0"
-_result=$(cat /proc/sys/net/ipv4/icmp_echo_ignore_all)
-if [[ $_result -ne 0 ]]; then
-    checkitem_warn
-    if [[ $OUTPUT_DETAIL == "yes" ]]; then
-        echo "{{{ 问题详情"
-        echo "当前配置禁止 ping 请求，可能导致监控无法正常工作"
-        echo "}}}"
-    fi
-    if [[ $OUTPUT_ADVISE == "yes" ]]; then
-        echo "{{{ 修复建议"
-        echo "1. 修改配置文件 /etc/sysctl.conf，设置 net.ipv4.icmp_echo_ignore_all = 0"
-        echo "2. 执行命令：sysctl net.ipv4.icmp_echo_ignore_all=0"
-        #echo "执行命令：echo "0" > /proc/sys/net/ipv4/icmp_echo_ignore_all"
-        echo "}}}"
-    fi
-    if [[ $BASELINE_APPLY == "yes" ]]; then
-        echo "{{{ 基线加固"
-        echo "#**网络配置** sysctl 允许 ping 请求" >> $BASELINE_RESTORE_FILE
-        echo "sysctl $(sysctl net.ipv4.icmp_echo_ignore_all | sed 's/ //g')" >> $BASELINE_RESTORE_FILE
-        _result=$(sed -nr "/^\s*net.ipv4.icmp_echo_ignore_all/p" /etc/sysctl.conf)
-        if [[ -n $_result ]]; then
-            sed -ir "/^\s*net.ipv4.icmp_echo_ignore_all/c $_string" /etc/sysctl.conf
-            echo "sed -ir \"/^\s*net.ipv4.icmp_echo_ignore_all/c $_result\" /etc/sysctl.conf" >> $BASELINE_RESTORE_FILE
-        else
-            sed -ir "$ a $_string" /etc/sysctl.conf
-            echo "sed -ir \"/^\s*net.ipv4.icmp_echo_ignore_all/d\" /etc/sysctl.conf " >> $BASELINE_RESTORE_FILE
+_item="**网络配置** sysctl 允许 ping 请求"
+_enable=1
+_group=""
+if [[ $_enable == 1 ]]; then
+    checkitem $_item
+    # sysctl net.ipv4.icmp_echo_ignore_all | awk '{print$3}'
+    _file="/etc/sysctl.conf"
+    _string="net.ipv4.icmp_echo_ignore_all = 0"
+    _result=$(cat /proc/sys/net/ipv4/icmp_echo_ignore_all)
+    if [[ $_result -ne 0 ]]; then
+        checkitem_warn
+        if [[ $OUTPUT_DETAIL == "yes" ]]; then
+            echo "{{{ 问题详情"
+            echo "当前配置禁止 ping 请求，可能导致监控无法正常工作"
+            echo "}}}"
         fi
-        sysctl net.ipv4.icmp_echo_ignore_all=0
-        echo "}}}"
-    fi
-else checkitem_success; fi
-
+        if [[ $OUTPUT_ADVISE == "yes" ]]; then
+            echo "{{{ 修复建议"
+            echo "1. 修改配置文件 $_file，设置 $_string"
+            echo "2. 执行命令：sysctl net.ipv4.icmp_echo_ignore_all=0"
+            #echo "执行命令：echo "0" > /proc/sys/net/ipv4/icmp_echo_ignore_all"
+            echo "}}}"
+        fi
+        if [[ $BASELINE_APPLY == "yes" ]]; then
+            echo "{{{ 基线加固"
+            echo "# $_item" >> $BASELINE_RESTORE_FILE
+            echo "sysctl $(sysctl net.ipv4.icmp_echo_ignore_all | sed 's/ //g')" >> $BASELINE_RESTORE_FILE
+            _result=$(sed -nr "/^\s*net.ipv4.icmp_echo_ignore_all/p" $_file)
+            if [[ -n $_result ]]; then
+                sed -ir "/^\s*net.ipv4.icmp_echo_ignore_all/c $_string" $_file
+                echo "sed -ir \"/^\s*net.ipv4.icmp_echo_ignore_all/c $_result\" $_file" >> $BASELINE_RESTORE_FILE
+            else
+                sed -ir "$ a $_string" $_file
+                echo "sed -ir \"/^\s*net.ipv4.icmp_echo_ignore_all/d\" $_file " >> $BASELINE_RESTORE_FILE
+            fi
+            sysctl net.ipv4.icmp_echo_ignore_all=0
+            echo "}}}"
+        fi
+    else checkitem_success; fi
+fi
