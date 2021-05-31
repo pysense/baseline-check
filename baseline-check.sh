@@ -39,6 +39,7 @@ SUID_SGID_FILES=(
 /usr/bin/locate
 /usr/bin/at
 )
+if [[ -f config ]]; then source config; fi
 
 # 基线配置建议（参考 CIS）
 PASS_MAX_DAYS=90
@@ -413,7 +414,7 @@ if [[ $_enable == 1 ]]; then
 fi
 
 _item="**SSH 安全** 禁用 UseDNS"
-_enable=1
+_enable=${sshd_config_usedns_no:-1}
 _group="SSHSecurity"
 if [[ $_enable == 1 ]]; then
     checkitem $_item
