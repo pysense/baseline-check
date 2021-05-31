@@ -40,9 +40,9 @@ SUID_SGID_FILES=(
 /usr/bin/at
 )
 
-# 基线配置建议
-PASS_MAX_DAYS=42
-PASS_MIN_LEN=8
+# 基线配置建议（参考 CIS）
+PASS_MAX_DAYS=90
+PASS_MIN_LEN=9
 
 # Colors
 ESC_SEQ="\x1b["
@@ -248,66 +248,71 @@ else checkitem_success; fi
 
 # ============================== **密码策略** ==============================
 hr
-checkitem **密码策略** 密码最大过期天数
+_item="**密码策略** 密码最长使用天数"
+checkitem $_item
+_file="/etc/login.defs"
 _string="PASS_MAX_DAYS $PASS_MAX_DAYS"
-_result=$(awk -v IGNORECASE=1 '/^\s*PASS_MAX_DAYS/{print$2}' /etc/login.defs)
+_result=$(awk -v IGNORECASE=1 '/^\s*PASS_MAX_DAYS/{print$2}' $_file)
 if [[ $_result -gt $PASS_MAX_DAYS || -z $_result ]]; then
     checkitem_warn
     if [[ $OUTPUT_DETAIL == "yes" ]]; then
         echo "{{{ 问题详情"
-        awk -v IGNORECASE=1 '/^\s*PASS_MAX_DAYS/' /etc/login.defs
+        awk -v IGNORECASE=1 '/^\s*PASS_MAX_DAYS/' $_file
         echo "}}}"
     fi
     if [[ $OUTPUT_ADVISE == "yes" ]]; then
         echo "{{{ 修复建议"
-        echo "修改配置文件 /etc/login.defs，设置 PASS_MAX_DAYS 小于或等于 $PASS_MAX_DAYS。"
+        echo "强制用户定期更改密码"
+        echo "修改配置文件 $_file，设置 $_string （PASS_MAX_DAYS 小于或等于 $PASS_MAX_DAYS）。"
         echo "}}}"
     fi
     if [[ $BASELINE_APPLY == "yes" ]]; then
         echo "{{{ 基线加固"
-        echo "#**密码策略** 密码最大过期天数" >> $BASELINE_RESTORE_FILE
-        _result=$(sed -nr "/^\s*PASS_MAX_DAYS/p" /etc/login.defs)
+        echo "# $_item" >> $BASELINE_RESTORE_FILE
+        _result=$(sed -nr "/^\s*PASS_MAX_DAYS/p" $_file)
         if [[ -n $_result ]]; then
-            sed -ir "/^\s*PASS_MAX_DAYS/c $_string" /etc/login.defs
-            echo "sed -ir \"/^\s*PASS_MAX_DAYS/c $_result\" /etc/login.defs" >> $BASELINE_RESTORE_FILE
+            sed -ir "/^\s*PASS_MAX_DAYS/c $_string" $_file
+            echo "sed -ir \"/^\s*PASS_MAX_DAYS/c $_result\" $_file" >> $BASELINE_RESTORE_FILE
         else
-            sed -ir "$ a $_string" /etc/login.defs
-            echo "sed -ir \"/^\s*PASS_MAX_DAYS/d\" /etc/login.defs" >> $BASELINE_RESTORE_FILE
+            sed -ir "$ a $_string" $_file
+            echo "sed -ir \"/^\s*PASS_MAX_DAYS/d\" $_file" >> $BASELINE_RESTORE_FILE
         fi
-        _result=$(sed -nr "/^\s*PASS_MAX_DAYS/p" /etc/login.defs)
+        _result=$(sed -nr "/^\s*PASS_MAX_DAYS/p" $_file)
         echo $_result
         echo "}}}"
     fi
 else checkitem_success; fi
 
 hr
-checkitem **密码策略** 密码最小长度
+_item="**密码策略** 密码最小长度"
+checkitem $_item
+_file="/etc/login.defs"
 _string="PASS_MIN_LEN $PASS_MIN_LEN"
-_result=$(awk -v IGNORECASE=1 '/^\s*PASS_MIN_LEN/{print$2}' /etc/login.defs)
+_result=$(awk -v IGNORECASE=1 '/^\s*PASS_MIN_LEN/{print$2}' $_file)
 if [[ $_result -lt $PASS_MIN_LEN || -z $_result ]]; then
     checkitem_warn
     if [[ $OUTPUT_DETAIL == "yes" ]]; then
         echo "{{{ 问题详情"
-        awk -v IGNORECASE=1 '/^\s*PASS_MIN_LEN/' /etc/login.defs
+        awk -v IGNORECASE=1 '/^\s*PASS_MIN_LEN/' $_file
         echo "}}}"
     fi
     if [[ $OUTPUT_ADVISE == "yes" ]]; then
         echo "{{{ 修复建议"
-        echo "修改配置文件 /etc/login.defs，设置 PASS_MIN_LEN 大于或等于 8。"
+        echo "修改配置文件 $_file，设置 $_string （PASS_MIN_LEN 大于或等于 $PASS_MIN_LEN）。"
         echo "}}}"
     fi
     if [[ $BASELINE_APPLY == "yes" ]]; then
         echo "{{{ 基线加固"
-        echo "#**密码策略** 密码最小长度" >> $BASELINE_RESTORE_FILE
-        _result=$(sed -nr "/^\s*PASS_MIN_LEN/p" /etc/login.defs)
+        echo "# $_item" >> $BASELINE_RESTORE_FILE
+        _result=$(sed -nr "/^\s*PASS_MIN_LEN/p" $_file)
         if [[ -n $_result ]]; then
-            sed -ir "/^\s*PASS_MIN_LEN/c $_string" /etc/login.defs
-            echo "sed -ir \"/^\s*PASS_MIN_LEN/c $_result\" /etc/login.defs" >> $BASELINE_RESTORE_FILE
+            sed -ir "/^\s*PASS_MIN_LEN/c $_string" $_file
+            echo "sed -ir \"/^\s*PASS_MIN_LEN/c $_result\" $_file" >> $BASELINE_RESTORE_FILE
         else
-            sed -ir "$ a $_string" /etc/login.defs
-            echo "sed -ir \"/^\s*PASS_MIN_LEN/d\" /etc/login.defs" >> $BASELINE_RESTORE_FILE
+            sed -ir "$ a $_string" $_file
+            echo "sed -ir \"/^\s*PASS_MIN_LEN/d\" $_file" >> $BASELINE_RESTORE_FILE
         fi
-        _result=$(sed -nr "/^\s*PASS_MIN_LEN/p" /etc/login.defs)
+        _result=$(sed -nr "/^\s*PASS_MIN_LEN/p" $_file)
         echo $_result
         echo "}}}"
     fi
