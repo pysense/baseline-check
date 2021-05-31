@@ -84,6 +84,7 @@ hr() {
     printf '%*s\n' "${COLUMNS:-$(tput cols)}" '' | tr ' ' -
 }
 checkitem() {
+    hr
     printf "%s\r" "[*] $*"
 }
 checkitem_success() {
@@ -106,7 +107,6 @@ if [[ ${1:-} == "-h" ]]; then usage; fi
 
 # main
 # ============================== **账号安全** ==============================
-hr
 checkitem **账号安全** 空口令账号
 _result=$(awk -F: '$2==""' /etc/shadow)
 if [[ -n $_result ]]; then
@@ -123,7 +123,6 @@ if [[ -n $_result ]]; then
     fi
 else checkitem_success; fi
 
-hr
 checkitem **账号安全** UID 为 0 的非 root 账号
 _result=$(awk -F: -v IGNORECASE=1 '$1!="root"&&$3==0' /etc/passwd)
 if [[ -n $_result ]]; then
@@ -140,7 +139,6 @@ if [[ -n $_result ]]; then
     fi
 else checkitem_success; fi
 
-hr
 checkitem **账号安全** 可登录账号
 _result=$(sort -nk3 -t: /etc/passwd | grep -Eiv ":/(sbin/(nologin|shutdown|halt)|bin/(sync|false))$" || :)
 if [[ -n $_result ]]; then
@@ -158,7 +156,6 @@ if [[ -n $_result ]]; then
 fi
 
 # ============================== **系统配置** ==============================
-hr
 checkitem **系统配置** 是否关闭 Core Dump
 _result=$(ulimit -c)
 if [[ $_result -ne 0 ]]; then
@@ -176,7 +173,6 @@ if [[ $_result -ne 0 ]]; then
 else checkitem_success; fi
 
 # ============================== **环境配置** ==============================
-hr
 checkitem **环境配置** 检查 PATH 变量是否包含当前目录
 _result=$(echo $PATH | grep -Eo '(^|:)(\.|:|$)' || :)
 if [[ -n $_result ]]; then
@@ -193,7 +189,6 @@ if [[ -n $_result ]]; then
     fi
 else checkitem_success; fi
 
-hr
 checkitem **环境配置** 检查 PATH 变量是否包含权限异常目录
 _result=$(find $(echo ${PATH//:/ }) -type d -perm -777 2> /dev/null || :)
 if [[ -n $_result ]]; then
@@ -210,7 +205,6 @@ if [[ -n $_result ]]; then
     fi
 else checkitem_success; fi
 
-hr
 checkitem **环境配置** umask 值
 _result=$(umask)
 if [[ $_result != 0027 ]]; then
@@ -228,7 +222,6 @@ if [[ $_result != 0027 ]]; then
     fi
 else checkitem_success; fi
 
-hr
 checkitem **环境配置** 系统空闲等待时间 TMOUT
 _result=$TMOUT
 if [[ -z $_result ]]; then
@@ -247,197 +240,223 @@ if [[ -z $_result ]]; then
 else checkitem_success; fi
 
 # ============================== **密码策略** ==============================
-hr
 _item="**密码策略** 密码最长使用天数"
-checkitem $_item
-_file="/etc/login.defs"
-_string="PASS_MAX_DAYS $PASS_MAX_DAYS"
-_result=$(awk -v IGNORECASE=1 '/^\s*PASS_MAX_DAYS/{print$2}' $_file)
-if [[ $_result -gt $PASS_MAX_DAYS || -z $_result ]]; then
-    checkitem_warn
-    if [[ $OUTPUT_DETAIL == "yes" ]]; then
-        echo "{{{ 问题详情"
-        awk -v IGNORECASE=1 '/^\s*PASS_MAX_DAYS/' $_file
-        echo "}}}"
-    fi
-    if [[ $OUTPUT_ADVISE == "yes" ]]; then
-        echo "{{{ 修复建议"
-        echo "强制用户定期更改密码"
-        echo "修改配置文件 $_file，设置 $_string （PASS_MAX_DAYS 小于或等于 $PASS_MAX_DAYS）。"
-        echo "}}}"
-    fi
-    if [[ $BASELINE_APPLY == "yes" ]]; then
-        echo "{{{ 基线加固"
-        echo "# $_item" >> $BASELINE_RESTORE_FILE
-        _result=$(sed -nr "/^\s*PASS_MAX_DAYS/p" $_file)
-        if [[ -n $_result ]]; then
-            sed -ir "/^\s*PASS_MAX_DAYS/c $_string" $_file
-            echo "sed -ir \"/^\s*PASS_MAX_DAYS/c $_result\" $_file" >> $BASELINE_RESTORE_FILE
-        else
-            sed -ir "$ a $_string" $_file
-            echo "sed -ir \"/^\s*PASS_MAX_DAYS/d\" $_file" >> $BASELINE_RESTORE_FILE
+_enable=1
+_group="AccountSecurity"
+if [[ $_enable == 1 ]]; then
+    checkitem $_item
+    _file="/etc/login.defs"
+    _string="PASS_MAX_DAYS $PASS_MAX_DAYS"
+    _result=$(awk -v IGNORECASE=1 '/^\s*PASS_MAX_DAYS/{print$2}' $_file)
+    if [[ $_result -gt $PASS_MAX_DAYS || -z $_result ]]; then
+        checkitem_warn
+        if [[ $OUTPUT_DETAIL == "yes" ]]; then
+            echo "{{{ 问题详情"
+            #awk -v IGNORECASE=1 '/^\s*PASS_MAX_DAYS/' $_file
+            awk -v IGNORECASE=1 '/^\s*PASS_MAX_DAYS/{print FILENAME":"FNR":"$0}' $_file
+            echo "}}}"
         fi
-        _result=$(sed -nr "/^\s*PASS_MAX_DAYS/p" $_file)
-        echo $_result
-        echo "}}}"
-    fi
-else checkitem_success; fi
+        if [[ $OUTPUT_ADVISE == "yes" ]]; then
+            echo "{{{ 修复建议"
+            echo "强制用户定期更改密码，PASS_MAX_DAYS 应小于或等于 $PASS_MAX_DAYS"
+            echo "修改配置文件 $_file，设置 $_string"
+            echo "}}}"
+        fi
+        if [[ $BASELINE_APPLY == "yes" ]]; then
+            echo "{{{ 基线加固"
+            echo "# $_item" >> $BASELINE_RESTORE_FILE
+            _result=$(sed -nr "/^\s*PASS_MAX_DAYS/p" $_file)
+            if [[ -n $_result ]]; then
+                sed -ir "/^\s*PASS_MAX_DAYS/c $_string" $_file
+                echo "sed -ir \"/^\s*PASS_MAX_DAYS/c $_result\" $_file" >> $BASELINE_RESTORE_FILE
+            else
+                sed -ir "$ a $_string" $_file
+                echo "sed -ir \"/^\s*PASS_MAX_DAYS/d\" $_file" >> $BASELINE_RESTORE_FILE
+            fi
+            _result=$(sed -nr "/^\s*PASS_MAX_DAYS/p" $_file)
+            echo $_result
+            echo "}}}"
+        fi
+    else checkitem_success; fi
+fi
 
-hr
 _item="**密码策略** 密码最小长度"
-checkitem $_item
-_file="/etc/login.defs"
-_string="PASS_MIN_LEN $PASS_MIN_LEN"
-_result=$(awk -v IGNORECASE=1 '/^\s*PASS_MIN_LEN/{print$2}' $_file)
-if [[ $_result -lt $PASS_MIN_LEN || -z $_result ]]; then
-    checkitem_warn
-    if [[ $OUTPUT_DETAIL == "yes" ]]; then
-        echo "{{{ 问题详情"
-        awk -v IGNORECASE=1 '/^\s*PASS_MIN_LEN/' $_file
-        echo "}}}"
-    fi
-    if [[ $OUTPUT_ADVISE == "yes" ]]; then
-        echo "{{{ 修复建议"
-        echo "修改配置文件 $_file，设置 $_string （PASS_MIN_LEN 大于或等于 $PASS_MIN_LEN）。"
-        echo "}}}"
-    fi
-    if [[ $BASELINE_APPLY == "yes" ]]; then
-        echo "{{{ 基线加固"
-        echo "# $_item" >> $BASELINE_RESTORE_FILE
-        _result=$(sed -nr "/^\s*PASS_MIN_LEN/p" $_file)
-        if [[ -n $_result ]]; then
-            sed -ir "/^\s*PASS_MIN_LEN/c $_string" $_file
-            echo "sed -ir \"/^\s*PASS_MIN_LEN/c $_result\" $_file" >> $BASELINE_RESTORE_FILE
-        else
-            sed -ir "$ a $_string" $_file
-            echo "sed -ir \"/^\s*PASS_MIN_LEN/d\" $_file" >> $BASELINE_RESTORE_FILE
+_enable=1
+_group="AccountSecurity"
+if [[ $_enable == 1 ]]; then
+    checkitem $_item
+    _file="/etc/login.defs"
+    _string="PASS_MIN_LEN $PASS_MIN_LEN"
+    _result=$(awk -v IGNORECASE=1 '/^\s*PASS_MIN_LEN/{print$2}' $_file)
+    if [[ $_result -lt $PASS_MIN_LEN || -z $_result ]]; then
+        checkitem_warn
+        if [[ $OUTPUT_DETAIL == "yes" ]]; then
+            echo "{{{ 问题详情"
+            #awk -v IGNORECASE=1 '/^\s*PASS_MIN_LEN/' $_file
+            awk -v IGNORECASE=1 '/^\s*PASS_MIN_LEN/{print FILENAME":"FNR":"$0}' $_file
+            echo "}}}"
         fi
-        _result=$(sed -nr "/^\s*PASS_MIN_LEN/p" $_file)
-        echo $_result
-        echo "}}}"
-    fi
-else checkitem_success; fi
+        if [[ $OUTPUT_ADVISE == "yes" ]]; then
+            echo "{{{ 修复建议"
+            echo "强制用户设置的密码最小长度，PASS_MIN_LEN 应大于或等于 $PASS_MIN_LEN"
+            echo "修改配置文件 $_file，设置 $_string"
+            echo "}}}"
+        fi
+        if [[ $BASELINE_APPLY == "yes" ]]; then
+            echo "{{{ 基线加固"
+            echo "# $_item" >> $BASELINE_RESTORE_FILE
+            _result=$(sed -nr "/^\s*PASS_MIN_LEN/p" $_file)
+            if [[ -n $_result ]]; then
+                sed -ir "/^\s*PASS_MIN_LEN/c $_string" $_file
+                echo "sed -ir \"/^\s*PASS_MIN_LEN/c $_result\" $_file" >> $BASELINE_RESTORE_FILE
+            else
+                sed -ir "$ a $_string" $_file
+                echo "sed -ir \"/^\s*PASS_MIN_LEN/d\" $_file" >> $BASELINE_RESTORE_FILE
+            fi
+            _result=$(sed -nr "/^\s*PASS_MIN_LEN/p" $_file)
+            echo $_result
+            echo "}}}"
+        fi
+    else checkitem_success; fi
+fi
 
 # ============================== **SSH 安全** ==============================
-hr
-checkitem **SSH 安全** 是否允许空口令登录
-_string="PermitEmptyPasswords no"
-_result=$(grep -Ei "^\s*PermitEmptyPasswords\s+yes" /etc/ssh/sshd_config || :)
-if [[ -n $_result ]]; then
-    checkitem_warn
-    if [[ $OUTPUT_DETAIL == "yes" ]]; then
-        echo "{{{ 问题详情"
-        echo "$_result"
-        echo "}}}"
-    fi
-    if [[ $OUTPUT_ADVISE == "yes" ]]; then
-        echo "{{{ 修复建议"
-        echo "1. 修改配置文件 /etc/ssh/sshd_config，设置 PermitEmptyPasswords no 以禁止空口令登录"
-        echo "2. 重启 sshd 服务"
-        echo "}}}"
-    fi
-    if [[ $BASELINE_APPLY == "yes" ]]; then
-        echo "{{{ 基线加固"
-        echo "#**SSH 安全** 是否允许空口令登录" >> $BASELINE_RESTORE_FILE
-        _result=$(sed -nr "/^\s*PermitEmptyPasswords/p" /etc/ssh/sshd_config)
-        if [[ -n $_result ]]; then
-            sed -ir "/^\s*PermitEmptyPasswords/c $_string" /etc/ssh/sshd_config
-            echo "sed -ir \"/^\s*PermitEmptyPasswords/c $_result\" /etc/ssh/sshd_config" >> $BASELINE_RESTORE_FILE
-        else
-            sed -ir "$ a $_string" /etc/ssh/sshd_config
-            echo "sed -ir \"/^\s*PermitEmptyPasswords/d\" /etc/ssh/sshd_config" >> $BASELINE_RESTORE_FILE
+_item="**SSH 安全** 禁止 SSH 空口令登录"
+_enable=1
+_group="SSHSecurity"
+if [[ $_enable == 1 ]]; then
+    checkitem $_item
+    _file="/etc/ssh/sshd_config"
+    _string="PermitEmptyPasswords no"
+    #_result=$(grep -Ei "^\s*PermitEmptyPasswords\s+yes" $_file || :)
+    _result=$(awk -v IGNORECASE=1 '/^\s*PermitEmptyPasswords\s+yes/' $_file)
+    if [[ -n $_result ]]; then
+        checkitem_warn
+        if [[ $OUTPUT_DETAIL == "yes" ]]; then
+            echo "{{{ 问题详情"
+            awk -v IGNORECASE=1 '/^\s*PermitEmptyPasswords\s+yes/{print FILENAME":"FNR":"$0}' $_file
+            echo "}}}"
         fi
-        _result=$(sed -nr "/^\s*PermitEmptyPasswords/p" /etc/ssh/sshd_config)
-        echo $_result
-        # TODO 判断 OS
-        post_command="systemctl restart sshd"
-        $post_command
-        echo "$post_command" >> $BASELINE_RESTORE_FILE
-        echo "}}}"
-    fi
-else checkitem_success; fi
+        if [[ $OUTPUT_ADVISE == "yes" ]]; then
+            echo "{{{ 修复建议"
+            echo "禁止 SSH 空口令登录"
+            echo "1. 修改配置文件 $_file，设置 $_string"
+            echo "2. 重启 sshd 服务"
+            echo "}}}"
+        fi
+        if [[ $BASELINE_APPLY == "yes" ]]; then
+            echo "{{{ 基线加固"
+            echo "# $_item" >> $BASELINE_RESTORE_FILE
+            _result=$(sed -nr "/^\s*PermitEmptyPasswords/p" $_file)
+            if [[ -n $_result ]]; then
+                sed -ir "/^\s*PermitEmptyPasswords/c $_string" $_file
+                echo "sed -ir \"/^\s*PermitEmptyPasswords/c $_result\" $_file" >> $BASELINE_RESTORE_FILE
+            else
+                sed -ir "$ a $_string" $_file
+                echo "sed -ir \"/^\s*PermitEmptyPasswords/d\" $_file" >> $BASELINE_RESTORE_FILE
+            fi
+            _result=$(sed -nr "/^\s*PermitEmptyPasswords/p" $_file)
+            echo $_result
+            # TODO 判断 OS
+            post_command="systemctl restart sshd"
+            $post_command
+            echo "$post_command" >> $BASELINE_RESTORE_FILE
+            echo "}}}"
+        fi
+    else checkitem_success; fi
+fi
 
-hr
-checkitem **SSH 安全** 是否允许 root 登录
-_file="/etc/ssh/sshd_config"
-_string="PermitRootLogin prohibit-password"
-_result=$(grep -Ei "^\s*PermitRootLogin\s+[^y]+" /etc/ssh/sshd_config || :)
-if [[ -z $_result ]]; then
-    checkitem_warn
-    if [[ $OUTPUT_DETAIL == "yes" ]]; then
-        echo "{{{ 问题详情"
-        echo "当前配置允许 root 通过密码登录 SSH"
-        echo "}}}"
-    fi
-    if [[ $OUTPUT_ADVISE == "yes" ]]; then
-        echo "{{{ 修复建议"
-        echo "禁用密码登录，保留通过密钥进行登录的能力"
-        echo "1. 修改配置文件 /etc/ssh/sshd_config，设置 PermitRootLogin prohibit-password"
-        echo "2. 重启 sshd 服务"
-        echo "}}}"
-    fi
-    # TODO 该配置有风险，如果未设置密钥登录将导致 SSH 无法登录
-    if [[ $BASELINE_APPLY == "todo-yes" ]]; then
-        echo "{{{ 基线加固"
-        echo "#**SSH 安全** 是否允许 root 登录" >> $BASELINE_RESTORE_FILE
-        _result=$(sed -nr "/^\s*PermitRootLogin/p" /etc/ssh/sshd_config)
-        if [[ -n $_result ]]; then
-            sed -ir "/^\s*PermitRootLogin/c $_string" /etc/ssh/sshd_config
-            echo "sed -ir \"/^\s*PermitRootLogin/c $_result\" /etc/ssh/sshd_config" >> $BASELINE_RESTORE_FILE
-        else
-            sed -ir "$ a $_string" /etc/ssh/sshd_config
-            echo "sed -ir \"/^\s*PermitRootLogin/d\" /etc/ssh/sshd_config" >> $BASELINE_RESTORE_FILE
+_item="**SSH 安全** 禁止 root 账号通过密码登录 SSH"
+_enable=1
+_group="SSHSecurity"
+if [[ $_enable == 1 ]]; then
+    checkitem $_item
+    _file="/etc/ssh/sshd_config"
+    _string="PermitRootLogin prohibit-password"
+    #_result=$(grep -Ei "^\s*PermitRootLogin\s+[^y]+" $_file || :)
+    _result=$(awk -v IGNORECASE=1 '/^\s*PermitRootLogin\s+[^y]+/' $_file)
+    if [[ -z $_result ]]; then
+        checkitem_warn
+        if [[ $OUTPUT_DETAIL == "yes" ]]; then
+            echo "{{{ 问题详情"
+            echo "当前配置允许 root 账号通过密码登录 SSH"
+            echo "}}}"
         fi
-        _result=$(sed -nr "/^\s*PermitRootLogin/p" /etc/ssh/sshd_config)
-        echo $_result
-        # TODO 判断 OS
-        post_command="systemctl restart sshd"
-        $post_command
-        echo "$post_command" >> $BASELINE_RESTORE_FILE
-        echo "}}}"
-    fi
-else checkitem_success; fi
+        if [[ $OUTPUT_ADVISE == "yes" ]]; then
+            echo "{{{ 修复建议"
+            echo "禁用 root 账号通过密码登录的能力，保留通过密钥登录的能力"
+            echo "1. 修改配置文件 $_file，设置 $_string"
+            echo "2. 重启 sshd 服务"
+            echo "}}}"
+        fi
+        # TODO 该配置有风险，如果未设置密钥登录将导致 SSH 无法登录
+        if [[ $BASELINE_APPLY == "todo-yes" ]]; then
+            echo "{{{ 基线加固"
+            echo "# $_item" >> $BASELINE_RESTORE_FILE
+            _result=$(sed -nr "/^\s*PermitRootLogin/p" $_file)
+            if [[ -n $_result ]]; then
+                sed -ir "/^\s*PermitRootLogin/c $_string" $_file
+                echo "sed -ir \"/^\s*PermitRootLogin/c $_result\" $_file" >> $BASELINE_RESTORE_FILE
+            else
+                sed -ir "$ a $_string" $_file
+                echo "sed -ir \"/^\s*PermitRootLogin/d\" $_file" >> $BASELINE_RESTORE_FILE
+            fi
+            _result=$(sed -nr "/^\s*PermitRootLogin/p" $_file)
+            echo $_result
+            # TODO 判断 OS
+            post_command="systemctl restart sshd"
+            $post_command
+            echo "$post_command" >> $BASELINE_RESTORE_FILE
+            echo "}}}"
+        fi
+    else checkitem_success; fi
+fi
 
-hr
-checkitem **SSH 安全** 禁用 UseDNS
-_string="UseDNS no"
-_result=$(grep -Ei "^\s*UseDNS\s+[^y]+" /etc/ssh/sshd_config || :)
-if [[ -z $_result ]]; then
-    checkitem_warn
-    if [[ $OUTPUT_DETAIL == "yes" ]]; then
-        echo "{{{ 问题详情"
-        echo "当前配置下 sshd 将对远程主机名进行反向解析，以检查此主机名是否与其IP地址真实对应。（会增加登录耗时）"
-        echo "}}}"
-    fi
-    if [[ $OUTPUT_ADVISE == "yes" ]]; then
-        echo "{{{ 修复建议"
-        echo "1. 修改配置文件 /etc/ssh/sshd_config，设置 UseDNS no"
-        echo "2. 重启 sshd 服务"
-        echo "}}}"
-    fi
-    if [[ $BASELINE_APPLY == "yes" ]]; then
-        echo "{{{ 基线加固"
-        echo "#**SSH 安全** UseDNS" >> $BASELINE_RESTORE_FILE
-        _result=$(sed -nr "/^\s*UseDNS/p" /etc/ssh/sshd_config)
-        if [[ -n $_result ]]; then
-            sed -ir "/^\s*UseDNS/c $_string" /etc/ssh/sshd_config
-            echo "sed -ir \"/^\s*UseDNS/c $_result\" /etc/ssh/sshd_config" >> $BASELINE_RESTORE_FILE
-        else
-            sed -ir "$ a $_string" /etc/ssh/sshd_config
-            echo "sed -ir \"/^\s*UseDNS/d\" /etc/ssh/sshd_config" >> $BASELINE_RESTORE_FILE
+_item="**SSH 安全** 禁用 UseDNS"
+_enable=1
+_group="SSHSecurity"
+if [[ $_enable == 1 ]]; then
+    checkitem $_item
+    _file="/etc/ssh/sshd_config"
+    _string="UseDNS no"
+    #_result=$(grep -Ei "^\s*UseDNS\s+[^y]+" $_file || :)
+    _result=$(awk -v IGNORECASE=1 '/^\s*UseDNS\s+[^y]+/' $_file)
+    if [[ -z $_result ]]; then
+        checkitem_warn
+        if [[ $OUTPUT_DETAIL == "yes" ]]; then
+            echo "{{{ 问题详情"
+            echo "当前配置下 sshd 将对远程主机名进行反向解析，以检查此主机名是否与其IP地址真实对应。（在无法解析时导致增加登录耗时）"
+            echo "}}}"
         fi
-        _result=$(sed -nr "/^\s*UseDNS/p" /etc/ssh/sshd_config)
-        echo $_result
-        # TODO 判断 OS
-        post_command="systemctl restart sshd"
-        $post_command
-        echo "$post_command" >> $BASELINE_RESTORE_FILE
-        echo "}}}"
-    fi
-else checkitem_success; fi
+        if [[ $OUTPUT_ADVISE == "yes" ]]; then
+            echo "{{{ 修复建议"
+            echo "1. 修改配置文件 $_file，设置 $_string"
+            echo "2. 重启 sshd 服务"
+            echo "}}}"
+        fi
+        if [[ $BASELINE_APPLY == "yes" ]]; then
+            echo "{{{ 基线加固"
+            echo "# $_item" >> $BASELINE_RESTORE_FILE
+            _result=$(sed -nr "/^\s*UseDNS/p" $_file)
+            if [[ -n $_result ]]; then
+                sed -ir "/^\s*UseDNS/c $_string" $_file
+                echo "sed -ir \"/^\s*UseDNS/c $_result\" $_file" >> $BASELINE_RESTORE_FILE
+            else
+                sed -ir "$ a $_string" $_file
+                echo "sed -ir \"/^\s*UseDNS/d\" $_file" >> $BASELINE_RESTORE_FILE
+            fi
+            _result=$(sed -nr "/^\s*UseDNS/p" $_file)
+            echo $_result
+            # TODO 判断 OS
+            post_command="systemctl restart sshd"
+            $post_command
+            echo "$post_command" >> $BASELINE_RESTORE_FILE
+            echo "}}}"
+        fi
+    else checkitem_success; fi
+fi
 
 # ============================== **文件权限** ==============================
-hr
 checkitem **文件权限** 任何人都有写权限的文件
 _result=$(find $(awk -v IGNORECASE=1 '$0~/^\s*[^#]/&&$2!="swap"{print$2}' /etc/fstab) -xdev -type f \( -perm -0002 -a ! -perm -1000 \))
 if [[ -n $_result ]]; then
@@ -454,7 +473,6 @@ if [[ -n $_result ]]; then
     fi
 else checkitem_success; fi
 
-hr
 checkitem **文件权限** 任何人都有写权限的目录
 _result=$(find $(awk -v IGNORECASE=1 '$0~/^\s*[^#]/&&$2!="swap"{print$2}' /etc/fstab) -xdev -type d \( -perm -0002 -a ! -perm -1000 \))
 if [[ -n $_result ]]; then
@@ -471,7 +489,6 @@ if [[ -n $_result ]]; then
     fi
 else checkitem_success; fi
 
-hr
 checkitem **文件权限** 检查没有属主或属组的文件
 _result=$(find $(awk -v IGNORECASE=1 '$0~/^\s*[^#]/&&$2!="swap"{print$2}' /etc/fstab) -xdev -nouser -o -nogroup)
 if [[ -n $_result ]]; then
@@ -491,7 +508,6 @@ if [[ -n $_result ]]; then
     fi
 else checkitem_success; fi
 
-hr
 checkitem **文件权限** 检查可疑隐藏文件
 _result=$(find $(awk -v IGNORECASE=1 '$0~/^\s*[^#]/&&$2!="swap"{print$2}' /etc/fstab) -xdev -name ".. *" -o -name "...*")
 if [[ -n $_result ]]; then
@@ -508,7 +524,6 @@ if [[ -n $_result ]]; then
     fi
 else checkitem_success; fi
 
-hr
 checkitem **文件权限** 检查 SUID/SGID 文件
 _result=$(find $(awk -v IGNORECASE=1 '$0~/^\s*[^#]/&&$2!="swap"{print$2}' /etc/fstab) -xdev \( -perm -4000 -o -perm -2000 \))
 if [[ -n $_result ]]; then
@@ -537,7 +552,6 @@ if [[ -n $_result ]]; then
 else checkitem_success; fi
 
 # ============================== **日志审计** ==============================
-hr
 checkitem **日志审计** 是否开启安全日志
 _string="authpriv.* /var/log/secure"
 _result=$(grep -Ei "^\s*authpriv\." /etc/rsyslog.conf || :)
@@ -555,7 +569,6 @@ if [[ -z $_result ]]; then
     fi
 else checkitem_success; fi
 
-hr
 checkitem **日志审计** 是否加载日志审计内核模块
 _result=$(auditctl -s | awk '/^enabled/{print$2}')
 if [[ $_result -ne 1 ]]; then
@@ -572,7 +585,6 @@ if [[ $_result -ne 1 ]]; then
     fi
 else checkitem_success; fi
 
-hr
 checkitem **日志审计** 是否开启日志审计服务
 _result=$(systemctl status auditd | grep "active (running)" || :)
 if [[ -z $_result ]]; then
@@ -591,7 +603,6 @@ if [[ -z $_result ]]; then
     fi
 else checkitem_success; fi
 
-hr
 checkitem **日志审计** 是否开启 cron 守护进程日志
 _result=$(grep -Ei "^\s*cron\." /etc/rsyslog.conf || :)
 if [[ -z $_result ]]; then
@@ -609,7 +620,6 @@ if [[ -z $_result ]]; then
 else checkitem_success; fi
 
 # ============================== **网络配置** ==============================
-hr
 checkitem **网络配置** sysctl 允许 ping 请求
 # sysctl net.ipv4.icmp_echo_ignore_all | awk '{print$3}'
 _string="net.ipv4.icmp_echo_ignore_all = 0"
