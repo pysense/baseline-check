@@ -608,7 +608,7 @@ if [[ $_enable == 1 ]]; then
             if [[ $OUTPUT_DETAIL == "yes" ]]; then
                 echo "{{{ 问题详情"
                 for i in ${_SUID_SGID_FILES[@]}; do
-                    echo $i
+                    ls -lh --color=auto --time-style=long-iso $i
                 done
                 echo "}}}"
             fi
