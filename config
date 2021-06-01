@@ -1,1 +1,13 @@
+# 脚本配置
+export OUTPUT_SILENT=yes    # 是否隐藏基线符合项
+export OUTPUT_DETAIL=yes    # 是否输出问题详情
+export OUTPUT_ADVISE=yes    # 是否输出修复建议
+export BASELINE_APPLY=no    # 是否应用基线加固
+
+# 检查项目：1 启用；0 禁用
+env_tmout=0
+login_defs_pass_max_days=1
+login_defs_pass_min_len=1
+sshd_config_permitemptypasswords_no=1
+sshd_config_permitrootlogin_prohibit_password=1
 sshd_config_usedns_no=1

@@ -4,13 +4,14 @@
 set -e
 date=$(date +%Y%m%d_%H%M%S)
 
+# 加载配置文件
 if [[ -f config ]]; then source config; fi
 
-# 脚本配置项
-OUTPUT_SILENT=${OUTPUT_SILENT:-no}                  # 是否输出基线符合项
-OUTPUT_DETAIL=${OUTPUT_DETAIL:-yes}                 # 是否输出详情
-OUTPUT_ADVISE=${OUTPUT_ADVISE:-yes}                 # 是否输出建议
-BASELINE_APPLY=${BASELINE_APPLY:-no}                # 是否应用加固策略
+# 脚本默认配置
+OUTPUT_SILENT=${OUTPUT_SILENT:-no}                  # 是否隐藏基线符合项
+OUTPUT_DETAIL=${OUTPUT_DETAIL:-yes}                 # 是否输出问题详情
+OUTPUT_ADVISE=${OUTPUT_ADVISE:-yes}                 # 是否输出修复建议
+BASELINE_APPLY=${BASELINE_APPLY:-no}                # 是否应用基线加固
 BASELINE_RESTORE_FILE=baseline-restore-${date}.sh   # 应用加固策略后生成的回退脚本
 SUID_SGID_FILES=(
 /usr/bin/wall
@@ -70,7 +71,7 @@ usage() {
     echo "Usage: $0 [-h]"
     echo
     echo "支持检查项目："
-    awk '/^checkitem\s/' $0 | sort -k2 | awk -F'**' '{print$2,$3}'
+    awk -F'"' '/^_item/{print$2}' $0 | sort -r
     exit
 }
 hr() {
@@ -263,7 +264,7 @@ if [[ $_enable == 1 ]]; then
 fi
 
 _item="**环境配置** 系统空闲等待时间 TMOUT"
-_enable=1
+_enable=${env_tmout:-1}
 _group=""
 if [[ $_enable == 1 ]]; then
     checkitem $_item
@@ -432,10 +433,11 @@ if [[ $_enable == 1 ]]; then
             echo "禁用 root 账号通过密码登录的能力，保留通过密钥登录的能力"
             echo "1. 修改配置文件 $_file，设置 $_string"
             echo "2. 重启 sshd 服务"
+            echo -e "$COL_RED注意：如果 root 账号未配置密钥登录，将导致 root 账号无法登录 SSH。$COL_RESET"
             echo "}}}"
         fi
-        # TODO 该配置有风险，如果未设置密钥登录将导致 SSH 无法登录
-        if [[ $BASELINE_APPLY == "todo-yes" ]]; then
+        # 注意：应用此基线加固有风险，如果未设置密钥登录将导致 SSH 无法登录
+        if [[ $BASELINE_APPLY == "yes" ]]; then
             echo "{{{ 基线加固"
             echo "# $_item" >> $BASELINE_RESTORE_FILE
             _result=$(sed -nr "/^\s*PermitRootLogin/p" $_file)
