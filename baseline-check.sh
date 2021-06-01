@@ -132,6 +132,31 @@ if [[ $_enable == 1 ]]; then
     else checkitem_success; fi
 fi
 
+_item="**账号安全** 是否存在克隆账号"
+_enable=1
+_group="AccountSecurity"
+if [[ $_enable == 1 ]]; then
+    checkitem $_item
+    _result=$(awk -F: '{uid[$3]++}END{for(i in uid)if(uid[i]>1)print i}' /etc/passwd)
+    if [[ -n $_result ]]; then
+        checkitem_warn
+        if [[ $OUTPUT_DETAIL == "yes" ]]; then
+            echo "{{{ 问题详情"
+            echo "/etc/passwd 文件异常"
+            for i in $_result; do
+                echo "以下账号 UID 相同："
+                awk -F: -v UID=$i '$3==UID' /etc/passwd
+            done
+            echo "}}}"
+        fi
+        if [[ $OUTPUT_ADVISE == "yes" ]]; then
+            echo "{{{ 修复建议"
+            echo "检查相同 UID 的账号"
+            echo "}}}"
+        fi
+    else checkitem_success; fi
+fi
+
 _item="**账号安全** 是否存在 UID 为 0 的非 root 账号"
 _enable=1
 _group="AccountSecurity"
