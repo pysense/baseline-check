@@ -509,7 +509,7 @@ _enable=1
 _group=""
 if [[ $_enable == 1 ]]; then
     checkitem $_item
-    _result=$(find $(awk -v IGNORECASE=1 '$0~/^\s*[^#]/&&$2!="swap"{print$2}' /etc/fstab) -xdev -type f \( -perm -0002 -a ! -perm -1000 \))
+    _result=$(find $(awk -v IGNORECASE=1 '$0~/^\s*[^#]/&&$2!~/swap|\/proc|\/dev/{print$2}' /etc/fstab) -xdev -type f \( -perm -0002 -a ! -perm -1000 \))
     if [[ -n $_result ]]; then
         checkitem_warn
         if [[ $OUTPUT_DETAIL == "yes" ]]; then
@@ -530,7 +530,7 @@ _enable=1
 _group=""
 if [[ $_enable == 1 ]]; then
     checkitem $_item
-    _result=$(find $(awk -v IGNORECASE=1 '$0~/^\s*[^#]/&&$2!="swap"{print$2}' /etc/fstab) -xdev -type d \( -perm -0002 -a ! -perm -1000 \))
+    _result=$(find $(awk -v IGNORECASE=1 '$0~/^\s*[^#]/&&$2!~/swap|\/proc|\/dev/{print$2}' /etc/fstab) -xdev -type d \( -perm -0002 -a ! -perm -1000 \))
     if [[ -n $_result ]]; then
         checkitem_warn
         if [[ $OUTPUT_DETAIL == "yes" ]]; then
@@ -551,7 +551,7 @@ _enable=1
 _group=""
 if [[ $_enable == 1 ]]; then
     checkitem $_item
-    _result=$(find $(awk -v IGNORECASE=1 '$0~/^\s*[^#]/&&$2!="swap"{print$2}' /etc/fstab) -xdev -nouser -o -nogroup)
+    _result=$(find $(awk -v IGNORECASE=1 '$0~/^\s*[^#]/&&$2!~/swap|\/proc|\/dev/{print$2}' /etc/fstab) -xdev -nouser -o -nogroup)
     if [[ -n $_result ]]; then
         checkitem_warn
         if [[ $OUTPUT_DETAIL == "yes" ]]; then
@@ -575,7 +575,7 @@ _enable=1
 _group=""
 if [[ $_enable == 1 ]]; then
     checkitem $_item
-    _result=$(find $(awk -v IGNORECASE=1 '$0~/^\s*[^#]/&&$2!="swap"{print$2}' /etc/fstab) -xdev -name ".. *" -o -name "...*")
+    _result=$(find $(awk -v IGNORECASE=1 '$0~/^\s*[^#]/&&$2!~/swap|\/proc|\/dev/{print$2}' /etc/fstab) -xdev -name ".. *" -o -name "...*")
     if [[ -n $_result ]]; then
         checkitem_warn
         if [[ $OUTPUT_DETAIL == "yes" ]]; then
@@ -596,7 +596,7 @@ _enable=1
 _group=""
 if [[ $_enable == 1 ]]; then
     checkitem $_item
-    _result=$(find $(awk -v IGNORECASE=1 '$0~/^\s*[^#]/&&$2!="swap"{print$2}' /etc/fstab) -xdev \( -perm -4000 -o -perm -2000 \))
+    _result=$(find $(awk -v IGNORECASE=1 '$0~/^\s*[^#]/&&$2!~/swap|\/proc|\/dev/{print$2}' /etc/fstab) -xdev \( -perm -4000 -o -perm -2000 \))
     if [[ -n $_result ]]; then
         for i in $_result; do
             if [[ ! ${SUID_SGID_FILES[@]} =~ "$i" ]]; then
