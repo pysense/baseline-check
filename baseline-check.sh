@@ -652,12 +652,12 @@ _enable=1
 _group=""
 if [[ $_enable == 1 ]]; then
     checkitem $_item
-    _result=$(auditctl -s | awk '/^enabled/{print$2}')
+    _result=$(auditctl -s 2> /dev/null | awk '/^enabled/{print$2}')
     if [[ $_result -ne 1 ]]; then
         checkitem_warn
         if [[ $OUTPUT_DETAIL == "yes" ]]; then
             echo "{{{ 问题详情"
-            auditctl -s | awk '/^enabled/'
+            echo "enabled $_result"
             echo "}}}"
         fi
         if [[ $OUTPUT_ADVISE == "yes" ]]; then
