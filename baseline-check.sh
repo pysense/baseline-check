@@ -624,8 +624,14 @@ if [[ $_enable == 1 ]]; then
     _result=$(find $(awk -v IGNORECASE=1 '$0~/^\s*[^#]/&&$2!~/swap|\/proc|\/dev/{print$2}' /etc/fstab) -xdev \( -perm -4000 -o -perm -2000 \))
     if [[ -n $_result ]]; then
         for i in $_result; do
-            if [[ ! ${SUID_SGID_FILES[@]} =~ "$i" ]]; then
-                _SUID_SGID_FILES+=($i)
+            if command -v rpm > /dev/null; then
+                if rpm -Vf $i | grep -q $i; then
+                    _SUID_SGID_FILES+=($i)
+                fi
+            else
+                if [[ ! ${SUID_SGID_FILES[@]} =~ "$i" ]]; then
+                    _SUID_SGID_FILES+=($i)
+                fi
             fi
         done
         if [[ ${#_SUID_SGID_FILES[@]} > 0 ]]; then
