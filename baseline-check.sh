@@ -103,8 +103,24 @@ checkitem_warn() {
 checkitem_info() {
     echo -e "$COL_CYAN[~]$COL_RESET"
 }
+isos() {
+    if [[ -f /etc/os-release ]]; then
+        source /etc/os-release
+        if [[ ${1:-} == $ID ]]; then return 0; fi
+    fi
+    return 1
+}
 
-command_check sed awk grep auditctl systemctl
+command_check sed awk grep systemctl
+
+# Ubuntu 16.04 默认未安装 auditd
+if ! command -v auditctl > /dev/null; then
+    echo -e "$COL_RED[x] 未检测到 auditd 服务，以下项目将不会检测：$COL_RESET"
+    echo -e "$COL_CYAN    **日志审计** 是否加载日志审计内核模块$COL_RESET"
+    echo -e "$COL_CYAN    **日志审计** 是否开启日志审计服务$COL_RESET"
+    logging_auditd_kernel=0
+    logging_auditd_service=0
+fi
 
 if [[ ${1:-} == "-h" ]]; then usage; fi
 
@@ -184,7 +200,7 @@ _enable=1
 _group="AccountSecurity"
 if [[ $_enable == 1 ]]; then
     checkitem $_item
-    _result=$(sort -nk3 -t: /etc/passwd | grep -Eiv ":/(sbin/(nologin|shutdown|halt)|bin/(sync|false))$" || :)
+    _result=$(sort -nk3 -t: /etc/passwd | grep -Eiv "/(false|nologin|sync|shutdown|halt)$" || :)
     if [[ -n $_result ]]; then
         checkitem_info
         if [[ $OUTPUT_DETAIL == "yes" ]]; then
@@ -351,6 +367,8 @@ if [[ $_enable == 1 ]]; then
     else checkitem_success; fi
 fi
 
+# CentOS 配置在 /etc/login.defs
+# Ubuntu 配置在 /etc/pam.d/common-password
 _item="**密码策略** 密码最小长度"
 _enable=${login_defs_pass_min_len:-1}
 _group="AccountSecurity"
@@ -358,33 +376,47 @@ if [[ $_enable == 1 ]]; then
     checkitem $_item
     _file="/etc/login.defs"
     _string="PASS_MIN_LEN $PASS_MIN_LEN"
+    _keyword="PASS_MIN_LEN"
     _result=$(awk -v IGNORECASE=1 '/^\s*PASS_MIN_LEN/{print$2}' $_file)
+    if isos ubuntu; then
+        _file="/etc/pam.d/common-password"
+        _string="password [success=1 default=ignore] pam_unix.so obscure sha512 minlen=$PASS_MIN_LEN"
+        _keyword="minlen"
+        _result=$(sed -nr "s/^\s*[^#].*minlen=//p" $_file)
+    fi
     if [[ $_result -lt $PASS_MIN_LEN || -z $_result ]]; then
         checkitem_warn
         if [[ $OUTPUT_DETAIL == "yes" ]]; then
             echo "{{{ 问题详情"
-            #awk -v IGNORECASE=1 '/^\s*PASS_MIN_LEN/' $_file
-            awk -v IGNORECASE=1 '/^\s*PASS_MIN_LEN/{print FILENAME":"FNR":"$0}' $_file
+            #awk -v IGNORECASE=1 '/^\s*PASS_MIN_LEN/{print FILENAME":"FNR":"$0}' $_file
+            awk -v IGNORECASE=1 '/^\s*[^#]*'$_keyword'/{print FILENAME":"FNR":"$0}' $_file
             echo "}}}"
         fi
         if [[ $OUTPUT_ADVISE == "yes" ]]; then
             echo "{{{ 修复建议"
-            echo "强制用户设置的密码最小长度，PASS_MIN_LEN 应大于或等于 $PASS_MIN_LEN"
+            echo "强制用户设置的密码最小长度，$_keyword 应大于或等于 $PASS_MIN_LEN"
             echo "修改配置文件 $_file，设置 $_string"
             echo "}}}"
         fi
         if [[ $BASELINE_APPLY == "yes" ]]; then
             echo "{{{ 基线加固"
             echo "# $_item" >> $BASELINE_RESTORE_FILE
-            _result=$(sed -nr "/^\s*PASS_MIN_LEN/p" $_file)
+            _result=$(sed -nr "/^\s*[^#]*$_keyword/p" $_file)
             if [[ -n $_result ]]; then
-                sed -ir "/^\s*PASS_MIN_LEN/c $_string" $_file
-                echo "sed -ir \"/^\s*PASS_MIN_LEN/c $_result\" $_file" >> $BASELINE_RESTORE_FILE
+                sed -ir "/^\s*[^#]*$_keyword/c $_string" $_file
+                echo "sed -ir \"/^\s*[^#]*$_keyword/c $_result\" $_file" >> $BASELINE_RESTORE_FILE
             else
-                sed -ir "$ a $_string" $_file
-                echo "sed -ir \"/^\s*PASS_MIN_LEN/d\" $_file" >> $BASELINE_RESTORE_FILE
+                if isos ubuntu; then
+                    sed -ir "/^\s*[^#]*password.*pam_unix.so/s/^/#_/" $_file
+                    sed -ir "$ a $_string" $_file
+                    echo "sed -ir \"/^\s*[^#]*$_keyword/d\" $_file" >> $BASELINE_RESTORE_FILE
+                    echo "sed -ir \"/^#_.*password.*pam_unix.so/s/^#_//\" $_file" >> $BASELINE_RESTORE_FILE
+                else
+                    sed -ir "$ a $_string" $_file
+                    echo "sed -ir \"/^\s*[^#]*$_keyword/d\" $_file" >> $BASELINE_RESTORE_FILE
+                fi
             fi
-            _result=$(sed -nr "/^\s*PASS_MIN_LEN/p" $_file)
+            _result=$(sed -nr "/^\s*[^#]*$_keyword/p" $_file)
             echo $_result
             echo "}}}"
         fi
@@ -428,7 +460,6 @@ if [[ $_enable == 1 ]]; then
             fi
             _result=$(sed -nr "/^\s*PermitEmptyPasswords/p" $_file)
             echo $_result
-            # TODO 判断 OS
             post_command="systemctl restart sshd"
             $post_command
             echo "$post_command" >> $BASELINE_RESTORE_FILE
@@ -475,7 +506,6 @@ if [[ $_enable == 1 ]]; then
             fi
             _result=$(sed -nr "/^\s*PermitRootLogin/p" $_file)
             echo $_result
-            # TODO 判断 OS
             post_command="systemctl restart sshd"
             $post_command
             echo "$post_command" >> $BASELINE_RESTORE_FILE
@@ -519,7 +549,6 @@ if [[ $_enable == 1 ]]; then
             fi
             _result=$(sed -nr "/^\s*UseDNS/p" $_file)
             echo $_result
-            # TODO 判断 OS
             post_command="systemctl restart sshd"
             $post_command
             echo "$post_command" >> $BASELINE_RESTORE_FILE
@@ -639,7 +668,7 @@ if [[ $_enable == 1 ]]; then
             if [[ $OUTPUT_DETAIL == "yes" ]]; then
                 echo "{{{ 问题详情"
                 for i in ${_SUID_SGID_FILES[@]}; do
-                    ls -lh --color=auto --time-style=long-iso $i
+                    ls -lhd --color=auto --time-style=long-iso $i
                 done
                 echo "}}}"
             fi
@@ -660,9 +689,12 @@ _enable=1
 _group=""
 if [[ $_enable == 1 ]]; then
     checkitem $_item
-    _file="/etc/rsyslog.conf"
+    _file="/etc/rsyslog.conf /etc/rsyslog.d/*.conf"
     _string="authpriv.* /var/log/secure"
-    _result=$(awk -v IGNORECASE=1 '/^\s*authpriv\./' $_file)
+    if isos ubuntu; then
+        _string="auth,authpriv.* /var/log/auth.log"
+    fi
+    _result=$(awk -v IGNORECASE=1 '/^\s*[^#]*authpriv\.[^n]/' $_file)
     if [[ -z $_result ]]; then
         checkitem_warn
         if [[ $OUTPUT_DETAIL == "yes" ]]; then
@@ -679,7 +711,7 @@ if [[ $_enable == 1 ]]; then
 fi
 
 _item="**日志审计** 是否加载日志审计内核模块"
-_enable=1
+_enable=${logging_auditd_kernel:-1}
 _group=""
 if [[ $_enable == 1 ]]; then
     checkitem $_item
@@ -700,7 +732,7 @@ if [[ $_enable == 1 ]]; then
 fi
 
 _item="**日志审计** 是否开启日志审计服务"
-_enable=1
+_enable=${logging_auditd_service:-1}
 _group=""
 if [[ $_enable == 1 ]]; then
     checkitem $_item
@@ -727,9 +759,9 @@ _enable=1
 _group=""
 if [[ $_enable == 1 ]]; then
     checkitem $_item
-    _file="/etc/rsyslog.conf"
+    _file="/etc/rsyslog.conf /etc/rsyslog.d/*.conf"
     _string="cron.* /var/log/cron"
-    _result=$(awk -v IGNORECASE=1 '/^\s*cron\./' $_file)
+    _result=$(awk -v IGNORECASE=1 '/^\s*[^#]*cron\.[^n]/' $_file)
     if [[ -z $_result ]]; then
         checkitem_warn
         if [[ $OUTPUT_DETAIL == "yes" ]]; then
