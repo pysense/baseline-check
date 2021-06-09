@@ -3,7 +3,7 @@ https://github.com/pysense/baseline-docs 配套脚本
 ## 简介
 
 - [x] 20210512 测试环境 CentOS 7
-- [x] 20210602 测试环境 Ubuntu 16.04
+- [x] 20210602 测试环境 Ubuntu 14.04/16.04
 
 
 

@@ -4,8 +4,37 @@
 set -e
 date=$(date +%Y%m%d_%H%M%S)
 
+error() { echo "错误：$1"; exit 1; }
+usage() {
+    sed -n "2p" $0
+    echo "Usage: $0 [-h]"
+    echo "Usage: $0 [-c|--cfg <config file>]"
+    echo
+    echo "支持检查项目："
+    awk -F'"' '/^_item/{print$2}' $0 | sort -r
+    exit
+}
+
+# 处理参数
+ARGS=$(getopt \
+    -o c:h \
+    -l cfg:,help \
+    -- "$@")
+[[ $? -ne 0 ]] && error "参数错误。"
+
+eval set -- "${ARGS}"
+
+while true; do
+    case "$1" in
+        -c|--cfg) cfgfile="$2"; shift 2;;
+        -h|--help) usage;;
+        --) shift; break;;
+        *) error "不支持的选项：$1";;
+    esac
+done
+
 # 加载配置文件
-if [[ -f config ]]; then source config; fi
+if [[ -f $cfgfile ]]; then source $cfgfile; fi
 
 # 脚本默认配置
 OUTPUT_SILENT=${OUTPUT_SILENT:-no}                  # 是否隐藏基线符合项
@@ -66,14 +95,6 @@ command_check() {
     done
     if [[ -n $ERROR ]]; then exit $ERROR; fi
 }
-usage() {
-    sed -n "2p" $0
-    echo "Usage: $0 [-h]"
-    echo
-    echo "支持检查项目："
-    awk -F'"' '/^_item/{print$2}' $0 | sort -r
-    exit
-}
 hr() {
     #if [[ $OUTPUT_SILENT == "yes" ]]; then return; fi
     if [[ $OUTPUT_SILENT == "yes" ]]; then
@@ -121,8 +142,6 @@ if ! command -v auditctl > /dev/null; then
     logging_auditd_kernel=0
     logging_auditd_service=0
 fi
-
-if [[ ${1:-} == "-h" ]]; then usage; fi
 
 # main
 # ============================== **账号安全** ==============================
