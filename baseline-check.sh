@@ -17,7 +17,7 @@ usage() {
 
 # 处理参数
 ARGS=$(getopt \
-    -o c:h \
+    -o f:h \
     -l cfg:,help \
     -- "$@")
 [[ $? -ne 0 ]] && error "参数错误。"
@@ -26,7 +26,7 @@ eval set -- "${ARGS}"
 
 while true; do
     case "$1" in
-        -c|--cfg) cfgfile="$2"; shift 2;;
+        -f|--cfg) cfgfile="$2"; shift 2;;
         -h|--help) usage;;
         --) shift; break;;
         *) error "不支持的选项：$1";;
@@ -373,11 +373,11 @@ if [[ $_enable == 1 ]]; then
             echo "# $_item" >> $BASELINE_RESTORE_FILE
             _result=$(sed -nr "/^\s*PASS_MAX_DAYS/p" $_file)
             if [[ -n $_result ]]; then
-                sed -ir "/^\s*PASS_MAX_DAYS/c $_string" $_file
-                echo "sed -ir \"/^\s*PASS_MAX_DAYS/c $_result\" $_file" >> $BASELINE_RESTORE_FILE
+                sed -i.blbak "/^\s*PASS_MAX_DAYS/c $_string" $_file
+                echo "sed -i.blbak \"/^\s*PASS_MAX_DAYS/c $_result\" $_file" >> $BASELINE_RESTORE_FILE
             else
-                sed -ir "$ a $_string" $_file
-                echo "sed -ir \"/^\s*PASS_MAX_DAYS/d\" $_file" >> $BASELINE_RESTORE_FILE
+                sed -i.blbak "$ a $_string" $_file
+                echo "sed -i.blbak \"/^\s*PASS_MAX_DAYS/d\" $_file" >> $BASELINE_RESTORE_FILE
             fi
             _result=$(sed -nr "/^\s*PASS_MAX_DAYS/p" $_file)
             echo $_result
@@ -422,17 +422,17 @@ if [[ $_enable == 1 ]]; then
             echo "# $_item" >> $BASELINE_RESTORE_FILE
             _result=$(sed -nr "/^\s*[^#]*$_keyword/p" $_file)
             if [[ -n $_result ]]; then
-                sed -ir "/^\s*[^#]*$_keyword/c $_string" $_file
-                echo "sed -ir \"/^\s*[^#]*$_keyword/c $_result\" $_file" >> $BASELINE_RESTORE_FILE
+                sed -i.blbak "/^\s*[^#]*$_keyword/c $_string" $_file
+                echo "sed -i.blbak \"/^\s*[^#]*$_keyword/c $_result\" $_file" >> $BASELINE_RESTORE_FILE
             else
                 if isos ubuntu; then
-                    sed -ir "/^\s*[^#]*password.*pam_unix.so/s/^/#_/" $_file
-                    sed -ir "$ a $_string" $_file
-                    echo "sed -ir \"/^\s*[^#]*$_keyword/d\" $_file" >> $BASELINE_RESTORE_FILE
-                    echo "sed -ir \"/^#_.*password.*pam_unix.so/s/^#_//\" $_file" >> $BASELINE_RESTORE_FILE
+                    sed -i.blbak "/^\s*[^#]*password.*pam_unix.so/s/^/#_/" $_file
+                    sed -i.blbak "$ a $_string" $_file
+                    echo "sed -i.blbak \"/^\s*[^#]*$_keyword/d\" $_file" >> $BASELINE_RESTORE_FILE
+                    echo "sed -i.blbak \"/^#_.*password.*pam_unix.so/s/^#_//\" $_file" >> $BASELINE_RESTORE_FILE
                 else
-                    sed -ir "$ a $_string" $_file
-                    echo "sed -ir \"/^\s*[^#]*$_keyword/d\" $_file" >> $BASELINE_RESTORE_FILE
+                    sed -i.blbak "$ a $_string" $_file
+                    echo "sed -i.blbak \"/^\s*[^#]*$_keyword/d\" $_file" >> $BASELINE_RESTORE_FILE
                 fi
             fi
             _result=$(sed -nr "/^\s*[^#]*$_keyword/p" $_file)
@@ -471,11 +471,11 @@ if [[ $_enable == 1 ]]; then
             echo "# $_item" >> $BASELINE_RESTORE_FILE
             _result=$(sed -nr "/^\s*PermitEmptyPasswords/p" $_file)
             if [[ -n $_result ]]; then
-                sed -ir "/^\s*PermitEmptyPasswords/c $_string" $_file
-                echo "sed -ir \"/^\s*PermitEmptyPasswords/c $_result\" $_file" >> $BASELINE_RESTORE_FILE
+                sed -i.blbak "/^\s*PermitEmptyPasswords/c $_string" $_file
+                echo "sed -i.blbak \"/^\s*PermitEmptyPasswords/c $_result\" $_file" >> $BASELINE_RESTORE_FILE
             else
-                sed -ir "$ a $_string" $_file
-                echo "sed -ir \"/^\s*PermitEmptyPasswords/d\" $_file" >> $BASELINE_RESTORE_FILE
+                sed -i.blbak "$ a $_string" $_file
+                echo "sed -i.blbak \"/^\s*PermitEmptyPasswords/d\" $_file" >> $BASELINE_RESTORE_FILE
             fi
             _result=$(sed -nr "/^\s*PermitEmptyPasswords/p" $_file)
             echo $_result
@@ -517,11 +517,11 @@ if [[ $_enable == 1 ]]; then
             echo "# $_item" >> $BASELINE_RESTORE_FILE
             _result=$(sed -nr "/^\s*PermitRootLogin/p" $_file)
             if [[ -n $_result ]]; then
-                sed -ir "/^\s*PermitRootLogin/c $_string" $_file
-                echo "sed -ir \"/^\s*PermitRootLogin/c $_result\" $_file" >> $BASELINE_RESTORE_FILE
+                sed -i.blbak "/^\s*PermitRootLogin/c $_string" $_file
+                echo "sed -i.blbak \"/^\s*PermitRootLogin/c $_result\" $_file" >> $BASELINE_RESTORE_FILE
             else
-                sed -ir "$ a $_string" $_file
-                echo "sed -ir \"/^\s*PermitRootLogin/d\" $_file" >> $BASELINE_RESTORE_FILE
+                sed -i.blbak "$ a $_string" $_file
+                echo "sed -i.blbak \"/^\s*PermitRootLogin/d\" $_file" >> $BASELINE_RESTORE_FILE
             fi
             _result=$(sed -nr "/^\s*PermitRootLogin/p" $_file)
             echo $_result
@@ -560,11 +560,11 @@ if [[ $_enable == 1 ]]; then
             echo "# $_item" >> $BASELINE_RESTORE_FILE
             _result=$(sed -nr "/^\s*UseDNS/p" $_file)
             if [[ -n $_result ]]; then
-                sed -ir "/^\s*UseDNS/c $_string" $_file
-                echo "sed -ir \"/^\s*UseDNS/c $_result\" $_file" >> $BASELINE_RESTORE_FILE
+                sed -i.blbak "/^\s*UseDNS/c $_string" $_file
+                echo "sed -i.blbak \"/^\s*UseDNS/c $_result\" $_file" >> $BASELINE_RESTORE_FILE
             else
-                sed -ir "$ a $_string" $_file
-                echo "sed -ir \"/^\s*UseDNS/d\" $_file" >> $BASELINE_RESTORE_FILE
+                sed -i.blbak "$ a $_string" $_file
+                echo "sed -i.blbak \"/^\s*UseDNS/d\" $_file" >> $BASELINE_RESTORE_FILE
             fi
             _result=$(sed -nr "/^\s*UseDNS/p" $_file)
             echo $_result
@@ -826,11 +826,11 @@ if [[ $_enable == 1 ]]; then
             echo "sysctl $(sysctl net.ipv4.icmp_echo_ignore_all | sed 's/ //g')" >> $BASELINE_RESTORE_FILE
             _result=$(sed -nr "/^\s*net.ipv4.icmp_echo_ignore_all/p" $_file)
             if [[ -n $_result ]]; then
-                sed -ir "/^\s*net.ipv4.icmp_echo_ignore_all/c $_string" $_file
-                echo "sed -ir \"/^\s*net.ipv4.icmp_echo_ignore_all/c $_result\" $_file" >> $BASELINE_RESTORE_FILE
+                sed -i.blbak "/^\s*net.ipv4.icmp_echo_ignore_all/c $_string" $_file
+                echo "sed -i.blbak \"/^\s*net.ipv4.icmp_echo_ignore_all/c $_result\" $_file" >> $BASELINE_RESTORE_FILE
             else
-                sed -ir "$ a $_string" $_file
-                echo "sed -ir \"/^\s*net.ipv4.icmp_echo_ignore_all/d\" $_file " >> $BASELINE_RESTORE_FILE
+                sed -i.blbak "$ a $_string" $_file
+                echo "sed -i.blbak \"/^\s*net.ipv4.icmp_echo_ignore_all/d\" $_file " >> $BASELINE_RESTORE_FILE
             fi
             sysctl net.ipv4.icmp_echo_ignore_all=0
             echo "}}}"
