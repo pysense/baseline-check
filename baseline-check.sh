@@ -837,3 +837,27 @@ if [[ $_enable == 1 ]]; then
         fi
     else checkitem_success; fi
 fi
+
+# ============================== **关键文件** ==============================
+_item="**关键文件** /etc/passwd"
+_enable=1
+_group=""
+if [[ $_enable == 1 ]]; then
+    checkitem $_item
+    _file="/etc/passwd"
+    _string=""
+    _result=$(lsattr $_file | cut -d" " -f1)
+    if [[ $_result =~ -------------[e-]-- ]]; then
+        checkitem_info
+        if [[ $OUTPUT_DETAIL == "yes" ]]; then
+            echo "{{{ 问题详情"
+            echo "$_file 存在额外属性：$_result"
+            echo "}}}"
+        fi
+        if [[ $OUTPUT_ADVISE == "yes" ]]; then
+            echo "{{{ 修复建议"
+            echo "可通过 chattr 命令修改额外属性，如该配置正常可忽略。"
+            echo "}}}"
+        fi
+    else checkitem_success; fi
+fi
