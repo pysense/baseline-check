@@ -219,7 +219,7 @@ _enable=1
 _group="AccountSecurity"
 if [[ $_enable == 1 ]]; then
     checkitem $_item
-    _result=$(sort -nk3 -t: /etc/passwd | grep -Eiv "/(false|nologin|sync|shutdown|halt)$" || :)
+    _result=$(sort -nk3 -t: /etc/passwd | grep -Eiv "^$|/(false|nologin|sync|shutdown|halt)$" || :)
     if [[ -n $_result ]]; then
         checkitem_info
         if [[ $OUTPUT_DETAIL == "yes" ]]; then
