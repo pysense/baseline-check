@@ -852,7 +852,7 @@ if [[ $_enable == 1 ]]; then
     _file="/etc/passwd"
     _string=""
     _result=$(lsattr $_file | cut -d" " -f1)
-    if [[ $_result =~ ----i----------- ]]; then
+    if [[ $_result =~ ----i--------[e-]-- ]]; then
         checkitem_info
         if [[ $OUTPUT_DETAIL == "yes" ]]; then
             echo "{{{ 问题详情"
