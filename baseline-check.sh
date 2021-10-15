@@ -7,11 +7,15 @@ date=$(date +%Y%m%d_%H%M%S)
 error() { echo "错误：$1"; exit 1; }
 usage() {
     sed -n "2p" $0
-    echo "Usage: $0 [-h]"
-    echo "Usage: $0 [-c|--cfg <config file>]"
     echo
     echo "支持检查项目："
     awk -F'"' '/^_item/{print$2}' $0 | sort -r
+    echo
+    echo "Usage:"
+    echo "  $0 [-h]"
+    echo "  $0 [-f|--cfg <config file>] # 指定配置文件"
+    echo "  OUTPUT_SILENT=yes $0        # 隐藏基线符合项"
+    echo
     exit
 }
 
@@ -848,7 +852,7 @@ if [[ $_enable == 1 ]]; then
     _file="/etc/passwd"
     _string=""
     _result=$(lsattr $_file | cut -d" " -f1)
-    if [[ $_result =~ -------------[e-]-- ]]; then
+    if [[ $_result =~ -------------[ei]-- ]]; then
         checkitem_info
         if [[ $OUTPUT_DETAIL == "yes" ]]; then
             echo "{{{ 问题详情"
@@ -862,3 +866,13 @@ if [[ $_enable == 1 ]]; then
         fi
     else checkitem_success; fi
 fi
+
+# Summary
+printf '%*s\n' "${COLUMNS:-$(tput cols)}" '' | tr ' ' -
+echo "检查日期：$(date)"
+echo "加载配置文件：${cfgfile:-无} 【参数 -f <cfgfile>】"
+echo "隐藏基线符合项：${OUTPUT_SILENT} 【配置项：OUTPUT_SILENT】"
+echo "输出问题详情：${OUTPUT_DETAIL} 【配置项：OUTPUT_DETAIL】"
+echo "输出修复建议：${OUTPUT_ADVISE} 【配置项：OUTPUT_ADVISE】"
+echo "应用基线加固：${BASELINE_APPLY} 【配置项：BASELINE_APPLY】"
+echo "基线加固回退脚本：${BASELINE_RESTORE_FILE} 【配置项：BASELINE_RESTORE_FILE】"
