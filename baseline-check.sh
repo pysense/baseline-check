@@ -70,6 +70,7 @@ SUID_SGID_FILES=(
 /usr/libexec/openssh/ssh-keysign
 /usr/bin/locate
 /usr/bin/at
+/var/lib/docker/
 )
 
 # 基线配置建议（参考 CIS）
@@ -669,7 +670,7 @@ _enable=1
 _group=""
 if [[ $_enable == 1 ]]; then
     checkitem $_item
-    _result=$(find $(awk -v IGNORECASE=1 '$0~/^\s*[^#]/&&$2!~/swap|\/proc|\/dev/{print$2}' /etc/fstab) -xdev \( -perm -4000 -o -perm -2000 \))
+    _result=$(find $(awk -v IGNORECASE=1 '$0~/^\s*[^#]/&&$2!~/swap|\/proc|\/dev/{print$2}' /etc/fstab) -xdev ! -path "/var/lib/docker/*" \( -perm -4000 -o -perm -2000 \))
     if [[ -n $_result ]]; then
         for i in $_result; do
             if command -v rpm > /dev/null; then
