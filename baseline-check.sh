@@ -3,6 +3,7 @@
 
 set -e
 date=$(date +%Y%m%d_%H%M%S)
+args="$@"
 
 error() { echo "错误：$1"; exit 1; }
 usage() {
@@ -869,10 +870,16 @@ fi
 
 # Summary
 printf '%*s\n' "${COLUMNS:-$(tput cols)}" '' | tr ' ' -
-echo "检查日期：$(date)"
-echo "加载配置文件：${cfgfile:-无} 【参数 -f <cfgfile>】"
-echo "隐藏基线符合项：${OUTPUT_SILENT} 【配置项：OUTPUT_SILENT】"
-echo "输出问题详情：${OUTPUT_DETAIL} 【配置项：OUTPUT_DETAIL】"
-echo "输出修复建议：${OUTPUT_ADVISE} 【配置项：OUTPUT_ADVISE】"
-echo "应用基线加固：${BASELINE_APPLY} 【配置项：BASELINE_APPLY】"
-echo "基线加固回退脚本：${BASELINE_RESTORE_FILE} 【配置项：BASELINE_RESTORE_FILE】"
+echo "检查日期：$(date +"%Y-%m-%d %H:%M:%S")"
+echo "检查命令：$0 $args"
+echo
+echo "- 配置文件：${cfgfile:-无}"
+echo "- 配置项"
+echo "  - OUTPUT_SILENT=${OUTPUT_SILENT} # 隐藏基线符合项"
+echo "  - OUTPUT_DETAIL=${OUTPUT_DETAIL} # 输出问题详情"
+echo "  - OUTPUT_ADVISE=${OUTPUT_ADVISE} # 输出修复建议"
+echo "  - BASELINE_APPLY=${BASELINE_APPLY} # 应用基线加固"
+if [[ ${BASELINE_APPLY:-no} == yes ]]; then
+    echo "    - BASELINE_RESTORE_FILE=${BASELINE_RESTORE_FILE} # 基线加固回退脚本"
+fi
+echo
