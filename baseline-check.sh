@@ -629,7 +629,7 @@ if [[ $_enable == 1 ]]; then
         checkitem_warn
         if [[ $OUTPUT_DETAIL == "yes" ]]; then
             echo "{{{ 问题详情"
-            echo "$_result"
+            echo "$_result" | grep --color .
             echo "}}}"
         fi
         if [[ $OUTPUT_ADVISE == "yes" ]]; then
@@ -650,7 +650,7 @@ if [[ $_enable == 1 ]]; then
         checkitem_warn
         if [[ $OUTPUT_DETAIL == "yes" ]]; then
             echo "{{{ 问题详情"
-            echo "$_result"
+            echo "$_result" | grep --color .
             echo "}}}"
         fi
         if [[ $OUTPUT_ADVISE == "yes" ]]; then
@@ -671,7 +671,7 @@ if [[ $_enable == 1 ]]; then
         checkitem_warn
         if [[ $OUTPUT_DETAIL == "yes" ]]; then
             echo "{{{ 问题详情"
-            echo "$_result"
+            echo "$_result" | grep --color .
             echo "}}}"
         fi
         if [[ $OUTPUT_ADVISE == "yes" ]]; then
@@ -695,7 +695,7 @@ if [[ $_enable == 1 ]]; then
         checkitem_warn
         if [[ $OUTPUT_DETAIL == "yes" ]]; then
             echo "{{{ 问题详情"
-            echo "$_result"
+            echo "$_result" | grep --color .
             echo "}}}"
         fi
         if [[ $OUTPUT_ADVISE == "yes" ]]; then
@@ -729,7 +729,8 @@ if [[ $_enable == 1 ]]; then
             if [[ $OUTPUT_DETAIL == "yes" ]]; then
                 echo "{{{ 问题详情"
                 for i in ${_SUID_SGID_FILES[@]}; do
-                    ls -lhd --color=auto --time-style=long-iso $i
+                    #ls -lhd --color=auto --time-style=long-iso $i
+                    echo "$i" | grep --color .
                 done
                 echo "}}}"
             fi
