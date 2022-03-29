@@ -46,6 +46,7 @@ OUTPUT_SILENT=${OUTPUT_SILENT:-no}                  # 是否隐藏基线符合�
 OUTPUT_DETAIL=${OUTPUT_DETAIL:-yes}                 # 是否输出问题详情
 OUTPUT_ADVISE=${OUTPUT_ADVISE:-yes}                 # 是否输出修复建议
 BASELINE_APPLY=${BASELINE_APPLY:-no}                # 是否应用基线加固
+BASELINE_RESTORE_DIR=restore/${date}                # 应用加固策略后生成的回退目录
 BASELINE_RESTORE_FILE=baseline-restore-${date}.sh   # 应用加固策略后生成的回退脚本
 SUID_SGID_FILES=(
 /usr/bin/wall
@@ -147,6 +148,11 @@ if ! command -v auditctl > /dev/null; then
     echo -e "$COL_CYAN    **日志审计** 是否开启日志审计服务$COL_RESET"
     logging_auditd_kernel=0
     logging_auditd_service=0
+fi
+
+# 创建回退目录
+if [[ $BASELINE_APPLY == "yes" ]]; then
+    mkdir -p $BASELINE_RESTORE_DIR
 fi
 
 # main
@@ -892,6 +898,13 @@ if [[ $_enable == 1 ]]; then
     else checkitem_success; fi
 fi
 
+# Cleanup
+if [[ $BASELINE_APPLY == yes ]]; then
+    if [[ $(find $BASELINE_RESTORE_DIR -type f) == "" ]]; then
+        rm -fr $BASELINE_RESTORE_DIR
+    fi
+fi
+
 # Summary
 printf '%*s\n' "${COLUMNS:-$(tput cols)}" '' | tr ' ' -
 echo "检查日期：$(date +"%Y-%m-%d %H:%M:%S")"
@@ -904,6 +917,7 @@ echo "  - OUTPUT_DETAIL=${OUTPUT_DETAIL} # 输出问题详情"
 echo "  - OUTPUT_ADVISE=${OUTPUT_ADVISE} # 输出修复建议"
 echo "  - BASELINE_APPLY=${BASELINE_APPLY} # 应用基线加固"
 if [[ $BASELINE_APPLY == yes ]]; then
+    echo "    - BASELINE_RESTORE_DIR=${BASELINE_RESTORE_DIR} # 基线加固回退目录"
     echo "    - BASELINE_RESTORE_FILE=${BASELINE_RESTORE_FILE} # 基线加固回退脚本"
 fi
 echo
