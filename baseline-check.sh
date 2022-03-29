@@ -203,7 +203,7 @@ _enable=1
 _group="AccountSecurity"
 if [[ $_enable == 1 ]]; then
     checkitem $_item
-    _result=$(awk -F: -v IGNORECASE=1 '$1!="root"&&$3==0' /etc/passwd)
+    _result=$(awk -F: '$1!="root"&&$3==0' /etc/passwd)
     if [[ -n $_result ]]; then
         checkitem_warn
         if [[ $OUTPUT_DETAIL == "yes" ]]; then
