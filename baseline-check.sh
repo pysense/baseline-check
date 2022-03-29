@@ -259,7 +259,6 @@ if [[ $_enable == 1 ]]; then
         if [[ $OUTPUT_DETAIL == "yes" ]]; then
             echo "{{{ 问题详情"
             echo "> /etc/shadow"
-            echo "root 账号未设置密码或账号锁定"
             echo "$_result" | GREP_COLOR='1;36' grep --color .
             echo "}}}"
         fi
