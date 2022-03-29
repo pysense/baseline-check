@@ -761,7 +761,7 @@ if [[ $_enable == 1 ]]; then
         checkitem_warn
         if [[ $OUTPUT_DETAIL == "yes" ]]; then
             echo "{{{ 问题详情"
-            echo "未配置 authpriv.*"
+            echo "未配置 authpriv.*" | grep --color .
             echo "}}}"
         fi
         if [[ $OUTPUT_ADVISE == "yes" ]]; then
@@ -782,7 +782,7 @@ if [[ $_enable == 1 ]]; then
         checkitem_warn
         if [[ $OUTPUT_DETAIL == "yes" ]]; then
             echo "{{{ 问题详情"
-            echo "enabled $_result"
+            echo "enabled $_result" | grep --color .
             echo "}}}"
         fi
         if [[ $OUTPUT_ADVISE == "yes" ]]; then
@@ -803,7 +803,7 @@ if [[ $_enable == 1 ]]; then
         checkitem_warn
         if [[ $OUTPUT_DETAIL == "yes" ]]; then
             echo "{{{ 问题详情"
-            systemctl status auditd | grep -i "Active:" || :
+            systemctl status auditd | grep -i "Active:" | grep --color .
             echo "}}}"
         fi
         if [[ $OUTPUT_ADVISE == "yes" ]]; then
@@ -828,7 +828,7 @@ if [[ $_enable == 1 ]]; then
         checkitem_warn
         if [[ $OUTPUT_DETAIL == "yes" ]]; then
             echo "{{{ 问题详情"
-            echo "未配置 cron.*"
+            echo "未配置 cron.*" | grep --color .
             echo "}}}"
         fi
         if [[ $OUTPUT_ADVISE == "yes" ]]; then
