@@ -186,7 +186,7 @@ if [[ $_enable == 1 ]]; then
             echo "/etc/passwd 文件异常"
             for i in $_result; do
                 echo "以下账号 UID 相同："
-                awk -F: -v UID=$i '$3==UID' /etc/passwd
+                awk -F: -v UID=$i '$3==UID' /etc/passwd | grep --color .
             done
             echo "}}}"
         fi
@@ -230,7 +230,7 @@ if [[ $_enable == 1 ]]; then
         checkitem_info
         if [[ $OUTPUT_DETAIL == "yes" ]]; then
             echo "{{{ 问题详情"
-            echo "$_result"
+            echo "$_result" | GREP_COLOR='1;36' grep --color .
             echo "}}}"
         fi
         if [[ $OUTPUT_ADVISE == "yes" ]]; then
