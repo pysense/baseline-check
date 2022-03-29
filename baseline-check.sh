@@ -161,6 +161,16 @@ if ! command -v auditctl > /dev/null; then
     logging_auditd_kernel=0
     logging_auditd_service=0
 fi
+# Ubuntu 桌面版默认未安装 openssh-server
+if ! command -v sshd > /dev/null; then
+    echo -e "$COL_RED[x] 未检测到 sshd 服务，以下项目将不会检测：$COL_RESET"
+    echo -e "$COL_CYAN    **SSH 安全** 禁止 SSH 空口令登录$COL_RESET"
+    echo -e "$COL_CYAN    **SSH 安全** 禁止 root 账号通过密码登录 SSH$COL_RESET"
+    echo -e "$COL_CYAN    **SSH 安全** 禁用 UseDNS$COL_RESET"
+    sshd_config_permitemptypasswords_no=0
+    sshd_config_permitrootlogin_prohibit_password=0
+    sshd_config_usedns_no=0
+fi
 
 # 创建回退目录
 if [[ $BASELINE_APPLY == "yes" ]]; then
