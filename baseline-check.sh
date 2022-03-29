@@ -138,6 +138,14 @@ isos() {
     fi
     return 1
 }
+backup_file() {
+    _file="$1"
+    if [[ ! -f ${_file}.orig ]]; then cp $_file{,.orig}; fi
+    if [[ ! -f $BASELINE_RESTORE_DIR/$(basename $_file) ]]; then
+        cp $_file $BASELINE_RESTORE_DIR
+        echo "/bin/cp -v $(basename $_file) $_file" >> $BASELINE_RESTORE_DIR/restore.sh
+    fi
+}
 
 command_check sed awk grep systemctl
 
@@ -389,34 +397,36 @@ if [[ $_enable == 1 ]]; then
     checkitem $_item
     _file="/etc/login.defs"
     _string="PASS_MAX_DAYS $PASS_MAX_DAYS"
+    _keyword="PASS_MAX_DAYS"
     _result=$(awk -v IGNORECASE=1 '/^\s*PASS_MAX_DAYS/{print$2}' $_file)
     if [[ $_result -gt $PASS_MAX_DAYS || -z $_result ]]; then
         checkitem_warn
         if [[ $OUTPUT_DETAIL == "yes" ]]; then
             echo "{{{ 问题详情"
-            #awk -v IGNORECASE=1 '/^\s*PASS_MAX_DAYS/' $_file
-            awk -v IGNORECASE=1 '/^\s*PASS_MAX_DAYS/{print FILENAME":"FNR":"$0}' $_file
+            if [[ -z $_result ]]; then
+                echo "$_keyword 未定义" | grep --color .
+            else
+                awk -v IGNORECASE=1 '/^\s*PASS_MAX_DAYS/{print FILENAME":"FNR":"$0}' $_file | grep --color .
+            fi
             echo "}}}"
         fi
         if [[ $OUTPUT_ADVISE == "yes" ]]; then
             echo "{{{ 修复建议"
-            echo "强制用户定期更改密码，PASS_MAX_DAYS 应小于或等于 $PASS_MAX_DAYS"
+            echo "强制用户定期更改密码，建议 PASS_MAX_DAYS 应小于或等于 $PASS_MAX_DAYS"
             echo "修改配置文件 $_file，设置 $_string"
             echo "}}}"
         fi
         if [[ $BASELINE_APPLY == "yes" ]]; then
             echo "{{{ 基线加固"
-            echo "# $_item" >> $BASELINE_RESTORE_FILE
-            _result=$(sed -nr "/^\s*PASS_MAX_DAYS/p" $_file)
+            backup_file $_file
+            _result=$(sed -nr "/^\s*PASS_MAX_DAYS/Ip" $_file)
             if [[ -n $_result ]]; then
-                sed -i.blbak "/^\s*PASS_MAX_DAYS/c $_string" $_file
-                echo "sed -i.blbak \"/^\s*PASS_MAX_DAYS/c $_result\" $_file" >> $BASELINE_RESTORE_FILE
+                sed -i "/^\s*PASS_MAX_DAYS/Ic $_string" $_file
             else
-                sed -i.blbak "$ a $_string" $_file
-                echo "sed -i.blbak \"/^\s*PASS_MAX_DAYS/d\" $_file" >> $BASELINE_RESTORE_FILE
+                sed -i "$ a $_string" $_file
             fi
-            _result=$(sed -nr "/^\s*PASS_MAX_DAYS/p" $_file)
-            echo $_result
+            _result=$(sed -nr "/^\s*PASS_MAX_DAYS/Ip" $_file)
+            echo $_result | GREP_COLOR='1;33' grep --color .
             echo "}}}"
         fi
     else checkitem_success; fi
@@ -437,42 +447,46 @@ if [[ $_enable == 1 ]]; then
         _file="/etc/pam.d/common-password"
         _string="password [success=1 default=ignore] pam_unix.so obscure sha512 minlen=$PASS_MIN_LEN"
         _keyword="minlen"
-        _result=$(sed -nr "s/^\s*[^#].*minlen=//p" $_file)
+        _result=$(sed -nr "s/^\s*[^#].*minlen=//Ip" $_file)
     fi
     if [[ $_result -lt $PASS_MIN_LEN || -z $_result ]]; then
         checkitem_warn
         if [[ $OUTPUT_DETAIL == "yes" ]]; then
             echo "{{{ 问题详情"
-            #awk -v IGNORECASE=1 '/^\s*PASS_MIN_LEN/{print FILENAME":"FNR":"$0}' $_file
-            awk -v IGNORECASE=1 '/^\s*[^#]*'$_keyword'/{print FILENAME":"FNR":"$0}' $_file
+            if [[ -z $_result ]]; then
+                echo "$_keyword 未定义" | grep --color .
+            else
+                awk -v IGNORECASE=1 '/^\s*[^#]*'$_keyword'/{print FILENAME":"FNR":"$0}' $_file | grep --color .
+            fi
             echo "}}}"
         fi
         if [[ $OUTPUT_ADVISE == "yes" ]]; then
             echo "{{{ 修复建议"
-            echo "强制用户设置的密码最小长度，$_keyword 应大于或等于 $PASS_MIN_LEN"
+            echo "强制用户设置的密码最小长度，建议 $_keyword 应大于或等于 $PASS_MIN_LEN"
             echo "修改配置文件 $_file，设置 $_string"
             echo "}}}"
         fi
         if [[ $BASELINE_APPLY == "yes" ]]; then
             echo "{{{ 基线加固"
-            echo "# $_item" >> $BASELINE_RESTORE_FILE
-            _result=$(sed -nr "/^\s*[^#]*$_keyword/p" $_file)
+            backup_file $_file
+            #echo "# $_item" >> $BASELINE_RESTORE_FILE
+            _result=$(sed -nr "/^\s*[^#]*$_keyword/Ip" $_file)
             if [[ -n $_result ]]; then
-                sed -i.blbak "/^\s*[^#]*$_keyword/c $_string" $_file
-                echo "sed -i.blbak \"/^\s*[^#]*$_keyword/c $_result\" $_file" >> $BASELINE_RESTORE_FILE
+                sed -i "/^\s*[^#]*$_keyword/Ic $_string" $_file
+                #echo "sed -i.blbak \"/^\s*[^#]*$_keyword/c $_result\" $_file" >> $BASELINE_RESTORE_FILE
             else
                 if isos ubuntu; then
-                    sed -i.blbak "/^\s*[^#]*password.*pam_unix.so/s/^/#_/" $_file
-                    sed -i.blbak "$ a $_string" $_file
-                    echo "sed -i.blbak \"/^\s*[^#]*$_keyword/d\" $_file" >> $BASELINE_RESTORE_FILE
-                    echo "sed -i.blbak \"/^#_.*password.*pam_unix.so/s/^#_//\" $_file" >> $BASELINE_RESTORE_FILE
+                    sed -i "/^\s*[^#]*password.*pam_unix.so/s/^/#_/" $_file
+                    sed -i "$ a $_string" $_file
+                    #echo "sed -i.blbak \"/^\s*[^#]*$_keyword/d\" $_file" >> $BASELINE_RESTORE_FILE
+                    #echo "sed -i.blbak \"/^#_.*password.*pam_unix.so/s/^#_//\" $_file" >> $BASELINE_RESTORE_FILE
                 else
-                    sed -i.blbak "$ a $_string" $_file
-                    echo "sed -i.blbak \"/^\s*[^#]*$_keyword/d\" $_file" >> $BASELINE_RESTORE_FILE
+                    sed -i "$ a $_string" $_file
+                    #echo "sed -i.blbak \"/^\s*[^#]*$_keyword/d\" $_file" >> $BASELINE_RESTORE_FILE
                 fi
             fi
-            _result=$(sed -nr "/^\s*[^#]*$_keyword/p" $_file)
-            echo $_result
+            _result=$(sed -nr "/^\s*[^#]*$_keyword/Ip" $_file)
+            echo $_result | GREP_COLOR='1;33' grep --color .
             echo "}}}"
         fi
     else checkitem_success; fi
