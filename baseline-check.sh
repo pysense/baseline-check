@@ -220,6 +220,28 @@ if [[ $_enable == 1 ]]; then
     else checkitem_success; fi
 fi
 
+_item="**账号安全** 检查 root 账号是否锁定"
+_enable=1
+_group="AccountSecurity"
+if [[ $_enable == 1 ]]; then
+    checkitem $_item
+    _result=$(awk -F: '$1=="root"&&$2~"[!*]+"' /etc/shadow)
+    if [[ -n $_result ]]; then
+        checkitem_info
+        if [[ $OUTPUT_DETAIL == "yes" ]]; then
+            echo "{{{ 问题详情"
+            echo "root 账号未设置密码或账号锁定"
+            echo "$_result" | grep --color .
+            echo "}}}"
+        fi
+        if [[ $OUTPUT_ADVISE == "yes" ]]; then
+            echo "{{{ 修复建议"
+            echo "如果 root 账号未设置免密登录，或当前系统不存在其他管理账号，建议为 root 设置密码。"
+            echo "}}}"
+        fi
+    else checkitem_success; fi
+fi
+
 _item="**账号安全** 可登录账号"
 _enable=1
 _group="AccountSecurity"
