@@ -318,7 +318,7 @@ if [[ $_enable == 1 ]]; then
         checkitem_warn
         if [[ $OUTPUT_DETAIL == "yes" ]]; then
             echo "{{{ 问题详情"
-            echo "$_result"
+            echo "$_result" | grep --color .
             echo "}}}"
         fi
         if [[ $OUTPUT_ADVISE == "yes" ]]; then
@@ -339,7 +339,7 @@ if [[ $_enable == 1 ]]; then
         checkitem_warn
         if [[ $OUTPUT_DETAIL == "yes" ]]; then
             echo "{{{ 问题详情"
-            umask -p
+            umask -p | grep --color .
             echo "}}}"
         fi
         if [[ $OUTPUT_ADVISE == "yes" ]]; then
@@ -361,7 +361,7 @@ if [[ $_enable == 1 ]]; then
         checkitem_warn
         if [[ $OUTPUT_DETAIL == "yes" ]]; then
             echo "{{{ 问题详情"
-            echo "未设置 TMOUT 变量"
+            echo "未设置 TMOUT 变量" | grep --color .
             echo "}}}"
         fi
         if [[ $OUTPUT_ADVISE == "yes" ]]; then
