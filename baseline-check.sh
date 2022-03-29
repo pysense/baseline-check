@@ -161,7 +161,7 @@ if [[ $_enable == 1 ]]; then
         checkitem_warn
         if [[ $OUTPUT_DETAIL == "yes" ]]; then
             echo "{{{ 问题详情"
-            echo "/etc/shadow 文件异常"
+            echo "> /etc/shadow"
             echo "$_result" | grep --color .
             echo "}}}"
         fi
@@ -183,7 +183,7 @@ if [[ $_enable == 1 ]]; then
         checkitem_warn
         if [[ $OUTPUT_DETAIL == "yes" ]]; then
             echo "{{{ 问题详情"
-            echo "/etc/passwd 文件异常"
+            echo "> /etc/passwd"
             for i in $_result; do
                 echo "以下账号 UID 相同："
                 awk -F: -v UID=$i '$3==UID' /etc/passwd | grep --color .
@@ -208,7 +208,7 @@ if [[ $_enable == 1 ]]; then
         checkitem_warn
         if [[ $OUTPUT_DETAIL == "yes" ]]; then
             echo "{{{ 问题详情"
-            echo "/etc/passwd 文件异常"
+            echo "> /etc/passwd"
             echo "$_result" | grep --color .
             echo "}}}"
         fi
@@ -230,8 +230,9 @@ if [[ $_enable == 1 ]]; then
         checkitem_info
         if [[ $OUTPUT_DETAIL == "yes" ]]; then
             echo "{{{ 问题详情"
+            echo "> /etc/shadow"
             echo "root 账号未设置密码或账号锁定"
-            echo "$_result" | grep --color .
+            echo "$_result" | GREP_COLOR='1;36' grep --color .
             echo "}}}"
         fi
         if [[ $OUTPUT_ADVISE == "yes" ]]; then
@@ -252,6 +253,7 @@ if [[ $_enable == 1 ]]; then
         checkitem_info
         if [[ $OUTPUT_DETAIL == "yes" ]]; then
             echo "{{{ 问题详情"
+            echo "> /etc/passwd"
             echo "$_result" | GREP_COLOR='1;36' grep --color .
             echo "}}}"
         fi
@@ -901,7 +903,7 @@ echo "  - OUTPUT_SILENT=${OUTPUT_SILENT} # 隐藏基线符合项"
 echo "  - OUTPUT_DETAIL=${OUTPUT_DETAIL} # 输出问题详情"
 echo "  - OUTPUT_ADVISE=${OUTPUT_ADVISE} # 输出修复建议"
 echo "  - BASELINE_APPLY=${BASELINE_APPLY} # 应用基线加固"
-if [[ ${BASELINE_APPLY:-no} == yes ]]; then
+if [[ $BASELINE_APPLY == yes ]]; then
     echo "    - BASELINE_RESTORE_FILE=${BASELINE_RESTORE_FILE} # 基线加固回退脚本"
 fi
 echo
