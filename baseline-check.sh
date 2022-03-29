@@ -291,7 +291,7 @@ if [[ $_enable == 1 ]]; then
         checkitem_warn
         if [[ $OUTPUT_DETAIL == "yes" ]]; then
             echo "{{{ 问题详情"
-            echo "$_result"
+            ulimit -a | grep --color "core file size.*"
             echo "}}}"
         fi
         if [[ $OUTPUT_ADVISE == "yes" ]]; then
@@ -469,20 +469,15 @@ if [[ $_enable == 1 ]]; then
         if [[ $BASELINE_APPLY == "yes" ]]; then
             echo "{{{ 基线加固"
             backup_file $_file
-            #echo "# $_item" >> $BASELINE_RESTORE_FILE
             _result=$(sed -nr "/^\s*[^#]*$_keyword/Ip" $_file)
             if [[ -n $_result ]]; then
                 sed -i "/^\s*[^#]*$_keyword/Ic $_string" $_file
-                #echo "sed -i.blbak \"/^\s*[^#]*$_keyword/c $_result\" $_file" >> $BASELINE_RESTORE_FILE
             else
                 if isos ubuntu; then
                     sed -i "/^\s*[^#]*password.*pam_unix.so/s/^/#_/" $_file
                     sed -i "$ a $_string" $_file
-                    #echo "sed -i.blbak \"/^\s*[^#]*$_keyword/d\" $_file" >> $BASELINE_RESTORE_FILE
-                    #echo "sed -i.blbak \"/^#_.*password.*pam_unix.so/s/^#_//\" $_file" >> $BASELINE_RESTORE_FILE
                 else
                     sed -i "$ a $_string" $_file
-                    #echo "sed -i.blbak \"/^\s*[^#]*$_keyword/d\" $_file" >> $BASELINE_RESTORE_FILE
                 fi
             fi
             _result=$(sed -nr "/^\s*[^#]*$_keyword/Ip" $_file)
