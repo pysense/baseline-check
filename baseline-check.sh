@@ -895,7 +895,7 @@ if [[ $_enable == 1 ]]; then
         checkitem_info
         if [[ $OUTPUT_DETAIL == "yes" ]]; then
             echo "{{{ 问题详情"
-            echo "$_file 存在额外属性：$_result"
+            echo "$_file 存在额外属性：$_result" | GREP_COLOR='1;36' grep --color .
             echo "}}}"
         fi
         if [[ $OUTPUT_ADVISE == "yes" ]]; then
