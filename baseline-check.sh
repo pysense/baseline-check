@@ -162,7 +162,7 @@ if [[ $_enable == 1 ]]; then
         if [[ $OUTPUT_DETAIL == "yes" ]]; then
             echo "{{{ 问题详情"
             echo "/etc/shadow 文件异常"
-            echo "$_result" | grep --color "^${_result%%:*}"
+            echo "$_result" | grep --color .
             echo "}}}"
         fi
         if [[ $OUTPUT_ADVISE == "yes" ]]; then
@@ -209,7 +209,7 @@ if [[ $_enable == 1 ]]; then
         if [[ $OUTPUT_DETAIL == "yes" ]]; then
             echo "{{{ 问题详情"
             echo "/etc/passwd 文件异常"
-            echo "$_result" | grep --color "^${_result%%:*}"
+            echo "$_result" | grep --color .
             echo "}}}"
         fi
         if [[ $OUTPUT_ADVISE == "yes" ]]; then
