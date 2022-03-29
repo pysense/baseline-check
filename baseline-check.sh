@@ -138,7 +138,7 @@ isos() {
     fi
     return 1
 }
-backup_file() {
+restore_setup() {
     _file="$1"
     _command="${2:-}"
     if [[ ! -f ${_file}.orig ]]; then cp $_file{,.orig}; fi
@@ -422,7 +422,7 @@ if [[ $_enable == 1 ]]; then
         fi
         if [[ $BASELINE_APPLY == "yes" ]]; then
             echo "{{{ 基线加固"
-            backup_file $_file
+            restore_setup $_file
             _result=$(sed -nr "/^\s*PASS_MAX_DAYS/Ip" $_file)
             if [[ -n $_result ]]; then
                 sed -i "/^\s*PASS_MAX_DAYS/Ic $_string" $_file
@@ -472,7 +472,7 @@ if [[ $_enable == 1 ]]; then
         fi
         if [[ $BASELINE_APPLY == "yes" ]]; then
             echo "{{{ 基线加固"
-            backup_file $_file
+            restore_setup $_file
             _result=$(sed -nr "/^\s*[^#]*$_keyword/Ip" $_file)
             if [[ -n $_result ]]; then
                 sed -i "/^\s*[^#]*$_keyword/Ic $_string" $_file
@@ -517,7 +517,7 @@ if [[ $_enable == 1 ]]; then
         fi
         if [[ $BASELINE_APPLY == "yes" ]]; then
             echo "{{{ 基线加固"
-            backup_file $_file "$_post_command"
+            restore_setup $_file "$_post_command"
             _result=$(sed -nr "/^\s*PermitEmptyPasswords/Ip" $_file)
             sed -i "/^\s*PermitEmptyPasswords/Ic $_string" $_file
             _result=$(sed -nr "/^\s*PermitEmptyPasswords/Ip" $_file)
@@ -555,7 +555,7 @@ if [[ $_enable == 1 ]]; then
         # 注意：应用此基线加固有风险，如果未设置密钥登录将导致 SSH 无法登录
         if [[ $BASELINE_APPLY == "yes" ]]; then
             echo "{{{ 基线加固"
-            backup_file $_file "$_post_command"
+            restore_setup $_file "$_post_command"
             _result=$(sed -nr "/^\s*PermitRootLogin/Ip" $_file)
             if [[ -n $_result ]]; then
                 sed -i "/^\s*PermitRootLogin/Ic $_string" $_file
@@ -594,7 +594,7 @@ if [[ $_enable == 1 ]]; then
         fi
         if [[ $BASELINE_APPLY == "yes" ]]; then
             echo "{{{ 基线加固"
-            backup_file $_file "$_post_command"
+            restore_setup $_file "$_post_command"
             _result=$(sed -nr "/^\s*UseDNS/Ip" $_file)
             if [[ -n $_result ]]; then
                 sed -i "/^\s*UseDNS/Ic $_string" $_file
