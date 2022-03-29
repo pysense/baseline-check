@@ -42,12 +42,12 @@ done
 if [[ -f $cfgfile ]]; then source $cfgfile; fi
 
 # 脚本默认配置
-OUTPUT_SILENT=${OUTPUT_SILENT:-no}                  # 是否隐藏基线符合项
-OUTPUT_DETAIL=${OUTPUT_DETAIL:-yes}                 # 是否输出问题详情
-OUTPUT_ADVISE=${OUTPUT_ADVISE:-yes}                 # 是否输出修复建议
-BASELINE_APPLY=${BASELINE_APPLY:-no}                # 是否应用基线加固
-BASELINE_RESTORE_DIR=restore/${date}                # 应用加固策略后生成的回退目录
-BASELINE_RESTORE_FILE=baseline-restore-${date}.sh   # 应用加固策略后生成的回退脚本
+OUTPUT_SILENT=${OUTPUT_SILENT:-no}                          # 是否隐藏基线符合项
+OUTPUT_DETAIL=${OUTPUT_DETAIL:-yes}                         # 是否输出问题详情
+OUTPUT_ADVISE=${OUTPUT_ADVISE:-yes}                         # 是否输出修复建议
+BASELINE_APPLY=${BASELINE_APPLY:-no}                        # 是否应用基线加固
+BASELINE_RESTORE_DIR=restore/${date}                        # 应用加固策略后生成的回退目录
+BASELINE_RESTORE_SCRIPT=$BASELINE_RESTORE_DIR/restore.sh    # 应用加固策略后生成的回退脚本
 SUID_SGID_FILES=(
 /usr/bin/wall
 /usr/bin/chfn
@@ -144,9 +144,9 @@ restore_setup() {
     if [[ ! -f ${_file}.orig ]]; then cp $_file{,.orig}; fi
     if [[ ! -f $BASELINE_RESTORE_DIR/$(basename $_file) ]]; then
         cp $_file $BASELINE_RESTORE_DIR
-        echo "/bin/cp -v $(basename $_file) $_file" >> $BASELINE_RESTORE_DIR/restore.sh
+        echo "/bin/cp -v $(basename $_file) $_file" >> $BASELINE_RESTORE_SCRIPT
         if [[ -n "$_command" ]]; then
-            echo "$_command" >> $BASELINE_RESTORE_DIR/restore.sh
+            echo "$_command" >> $BASELINE_RESTORE_SCRIPT
         fi
     fi
 }
@@ -911,7 +911,7 @@ if [[ $BASELINE_APPLY == yes ]]; then
     if [[ $(find $BASELINE_RESTORE_DIR -type f) == "" ]]; then
         rm -fr $BASELINE_RESTORE_DIR
     else
-        sed -i '1i cd $(dirname $(readlink -f ${BASH_SOURCE[0]}))\nset -x' $BASELINE_RESTORE_DIR/restore.sh
+        sed -i '1i cd $(dirname $(readlink -f ${BASH_SOURCE[0]}))\nset -x' $BASELINE_RESTORE_SCRIPT
     fi
 fi
 
@@ -926,8 +926,8 @@ echo "  - OUTPUT_SILENT=${OUTPUT_SILENT} # 隐藏基线符合项"
 echo "  - OUTPUT_DETAIL=${OUTPUT_DETAIL} # 输出问题详情"
 echo "  - OUTPUT_ADVISE=${OUTPUT_ADVISE} # 输出修复建议"
 echo "  - BASELINE_APPLY=${BASELINE_APPLY} # 应用基线加固"
-if [[ $BASELINE_APPLY == yes ]]; then
+if [[ -d $BASELINE_RESTORE_DIR ]]; then
     echo "    - BASELINE_RESTORE_DIR=${BASELINE_RESTORE_DIR} # 基线加固回退目录"
-    echo "    - BASELINE_RESTORE_FILE=${BASELINE_RESTORE_FILE} # 基线加固回退脚本"
+    echo "    - BASELINE_RESTORE_SCRIPT=${BASELINE_RESTORE_SCRIPT} # 基线加固回退脚本"
 fi
 echo
