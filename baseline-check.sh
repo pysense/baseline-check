@@ -848,34 +848,35 @@ if [[ $_enable == 1 ]]; then
     # sysctl net.ipv4.icmp_echo_ignore_all | awk '{print$3}'
     _file="/etc/sysctl.conf"
     _string="net.ipv4.icmp_echo_ignore_all = 0"
+    _post_command="sysctl net.ipv4.icmp_echo_ignore_all=0"
     _result=$(cat /proc/sys/net/ipv4/icmp_echo_ignore_all)
     if [[ $_result -ne 0 ]]; then
         checkitem_warn
         if [[ $OUTPUT_DETAIL == "yes" ]]; then
             echo "{{{ 问题详情"
             echo "当前配置禁止 ping 请求，可能导致监控无法正常工作"
+            sysctl net.ipv4.icmp_echo_ignore_all | grep --color .
             echo "}}}"
         fi
         if [[ $OUTPUT_ADVISE == "yes" ]]; then
             echo "{{{ 修复建议"
             echo "1. 修改配置文件 $_file，设置 $_string"
-            echo "2. 执行命令：sysctl net.ipv4.icmp_echo_ignore_all=0"
-            #echo "执行命令：echo "0" > /proc/sys/net/ipv4/icmp_echo_ignore_all"
+            echo "2. 执行命令："
+            echo "  sysctl net.ipv4.icmp_echo_ignore_all=0"
+            echo "或者："
+            echo "  echo \"0\" > /proc/sys/net/ipv4/icmp_echo_ignore_all"
             echo "}}}"
         fi
         if [[ $BASELINE_APPLY == "yes" ]]; then
             echo "{{{ 基线加固"
-            echo "# $_item" >> $BASELINE_RESTORE_FILE
-            echo "sysctl $(sysctl net.ipv4.icmp_echo_ignore_all | sed 's/ //g')" >> $BASELINE_RESTORE_FILE
-            _result=$(sed -nr "/^\s*net.ipv4.icmp_echo_ignore_all/p" $_file)
+            restore_setup $_file "sysctl $(sysctl net.ipv4.icmp_echo_ignore_all | sed 's/ //g')"
+            _result=$(sed -nr "/^\s*net.ipv4.icmp_echo_ignore_all/Ip" $_file)
             if [[ -n $_result ]]; then
-                sed -i.blbak "/^\s*net.ipv4.icmp_echo_ignore_all/c $_string" $_file
-                echo "sed -i.blbak \"/^\s*net.ipv4.icmp_echo_ignore_all/c $_result\" $_file" >> $BASELINE_RESTORE_FILE
+                sed -i "/^\s*net.ipv4.icmp_echo_ignore_all/Ic $_string" $_file
             else
-                sed -i.blbak "$ a $_string" $_file
-                echo "sed -i.blbak \"/^\s*net.ipv4.icmp_echo_ignore_all/d\" $_file " >> $BASELINE_RESTORE_FILE
+                sed -i "$ a $_string" $_file
             fi
-            sysctl net.ipv4.icmp_echo_ignore_all=0
+            $_post_command | GREP_COLOR='1;33' grep --color .
             echo "}}}"
         fi
     else checkitem_success; fi
