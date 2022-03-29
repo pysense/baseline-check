@@ -140,10 +140,14 @@ isos() {
 }
 backup_file() {
     _file="$1"
+    _command="${2:-}"
     if [[ ! -f ${_file}.orig ]]; then cp $_file{,.orig}; fi
     if [[ ! -f $BASELINE_RESTORE_DIR/$(basename $_file) ]]; then
         cp $_file $BASELINE_RESTORE_DIR
         echo "/bin/cp -v $(basename $_file) $_file" >> $BASELINE_RESTORE_DIR/restore.sh
+        if [[ -n "$_command" ]]; then
+            echo "$_command" >> $BASELINE_RESTORE_DIR/restore.sh
+        fi
     fi
 }
 
@@ -495,13 +499,13 @@ if [[ $_enable == 1 ]]; then
     checkitem $_item
     _file="/etc/ssh/sshd_config"
     _string="PermitEmptyPasswords no"
-    #_result=$(grep -Ei "^\s*PermitEmptyPasswords\s+yes" $_file || :)
+    _post_command="systemctl restart sshd"
     _result=$(awk -v IGNORECASE=1 '/^\s*PermitEmptyPasswords\s+yes/' $_file)
-    if [[ -n $_result ]]; then
+    if [[ -n $_result ]]; then # 如果 PermitEmptyPasswords 未配置，默认为 no，无需修改
         checkitem_warn
         if [[ $OUTPUT_DETAIL == "yes" ]]; then
             echo "{{{ 问题详情"
-            awk -v IGNORECASE=1 '/^\s*PermitEmptyPasswords\s+yes/{print FILENAME":"FNR":"$0}' $_file
+            awk -v IGNORECASE=1 '/^\s*PermitEmptyPasswords\s+yes/{print FILENAME":"FNR":"$0}' $_file | grep --color .
             echo "}}}"
         fi
         if [[ $OUTPUT_ADVISE == "yes" ]]; then
@@ -513,20 +517,12 @@ if [[ $_enable == 1 ]]; then
         fi
         if [[ $BASELINE_APPLY == "yes" ]]; then
             echo "{{{ 基线加固"
-            echo "# $_item" >> $BASELINE_RESTORE_FILE
-            _result=$(sed -nr "/^\s*PermitEmptyPasswords/p" $_file)
-            if [[ -n $_result ]]; then
-                sed -i.blbak "/^\s*PermitEmptyPasswords/c $_string" $_file
-                echo "sed -i.blbak \"/^\s*PermitEmptyPasswords/c $_result\" $_file" >> $BASELINE_RESTORE_FILE
-            else
-                sed -i.blbak "$ a $_string" $_file
-                echo "sed -i.blbak \"/^\s*PermitEmptyPasswords/d\" $_file" >> $BASELINE_RESTORE_FILE
-            fi
-            _result=$(sed -nr "/^\s*PermitEmptyPasswords/p" $_file)
-            echo $_result
-            post_command="systemctl restart sshd"
-            $post_command
-            echo "$post_command" >> $BASELINE_RESTORE_FILE
+            backup_file $_file "$_post_command"
+            _result=$(sed -nr "/^\s*PermitEmptyPasswords/Ip" $_file)
+            sed -i "/^\s*PermitEmptyPasswords/Ic $_string" $_file
+            _result=$(sed -nr "/^\s*PermitEmptyPasswords/Ip" $_file)
+            echo $_result | GREP_COLOR='1;33' grep --color .
+            $_post_command
             echo "}}}"
         fi
     else checkitem_success; fi
@@ -539,9 +535,9 @@ if [[ $_enable == 1 ]]; then
     checkitem $_item
     _file="/etc/ssh/sshd_config"
     _string="PermitRootLogin prohibit-password"
-    #_result=$(grep -Ei "^\s*PermitRootLogin\s+[^y]+" $_file || :)
+    _post_command="systemctl restart sshd"
     _result=$(awk -v IGNORECASE=1 '/^\s*PermitRootLogin\s+[^y]+/' $_file)
-    if [[ -z $_result ]]; then
+    if [[ -z $_result ]]; then # 如果 PermitRootLogin 未配置，默认为 yes，如果上面命令查询结果为空，说明配置了 yes，这里都需要修改
         checkitem_warn
         if [[ $OUTPUT_DETAIL == "yes" ]]; then
             echo "{{{ 问题详情"
@@ -553,26 +549,22 @@ if [[ $_enable == 1 ]]; then
             echo "禁用 root 账号通过密码登录的能力，保留通过密钥登录的能力"
             echo "1. 修改配置文件 $_file，设置 $_string"
             echo "2. 重启 sshd 服务"
-            echo -e "$COL_RED注意：如果 root 账号未配置密钥登录，将导致 root 账号无法登录 SSH。$COL_RESET"
+            echo "注意：如果 root 账号未配置密钥登录，将导致 root 账号无法登录 SSH。" | GREP_COLOR='1;32' grep --color .
             echo "}}}"
         fi
         # 注意：应用此基线加固有风险，如果未设置密钥登录将导致 SSH 无法登录
         if [[ $BASELINE_APPLY == "yes" ]]; then
             echo "{{{ 基线加固"
-            echo "# $_item" >> $BASELINE_RESTORE_FILE
-            _result=$(sed -nr "/^\s*PermitRootLogin/p" $_file)
+            backup_file $_file "$_post_command"
+            _result=$(sed -nr "/^\s*PermitRootLogin/Ip" $_file)
             if [[ -n $_result ]]; then
-                sed -i.blbak "/^\s*PermitRootLogin/c $_string" $_file
-                echo "sed -i.blbak \"/^\s*PermitRootLogin/c $_result\" $_file" >> $BASELINE_RESTORE_FILE
+                sed -i "/^\s*PermitRootLogin/Ic $_string" $_file
             else
-                sed -i.blbak "$ a $_string" $_file
-                echo "sed -i.blbak \"/^\s*PermitRootLogin/d\" $_file" >> $BASELINE_RESTORE_FILE
+                sed -i "$ a $_string" $_file
             fi
-            _result=$(sed -nr "/^\s*PermitRootLogin/p" $_file)
-            echo $_result
-            post_command="systemctl restart sshd"
-            $post_command
-            echo "$post_command" >> $BASELINE_RESTORE_FILE
+            _result=$(sed -nr "/^\s*PermitRootLogin/Ip" $_file)
+            echo $_result | GREP_COLOR='1;33' grep --color .
+            $_post_command
             echo "}}}"
         fi
     else checkitem_success; fi
@@ -585,9 +577,9 @@ if [[ $_enable == 1 ]]; then
     checkitem $_item
     _file="/etc/ssh/sshd_config"
     _string="UseDNS no"
-    #_result=$(grep -Ei "^\s*UseDNS\s+[^y]+" $_file || :)
+    _post_command="systemctl restart sshd"
     _result=$(awk -v IGNORECASE=1 '/^\s*UseDNS\s+[^y]+/' $_file)
-    if [[ -z $_result ]]; then
+    if [[ -z $_result ]]; then # 如果 UseDNS 未配置，默认为 yes，如果上面命令查询结果为空，说明配置了 yes，这里都需要修改
         checkitem_warn
         if [[ $OUTPUT_DETAIL == "yes" ]]; then
             echo "{{{ 问题详情"
@@ -602,20 +594,16 @@ if [[ $_enable == 1 ]]; then
         fi
         if [[ $BASELINE_APPLY == "yes" ]]; then
             echo "{{{ 基线加固"
-            echo "# $_item" >> $BASELINE_RESTORE_FILE
-            _result=$(sed -nr "/^\s*UseDNS/p" $_file)
+            backup_file $_file "$_post_command"
+            _result=$(sed -nr "/^\s*UseDNS/Ip" $_file)
             if [[ -n $_result ]]; then
-                sed -i.blbak "/^\s*UseDNS/c $_string" $_file
-                echo "sed -i.blbak \"/^\s*UseDNS/c $_result\" $_file" >> $BASELINE_RESTORE_FILE
+                sed -i "/^\s*UseDNS/Ic $_string" $_file
             else
-                sed -i.blbak "$ a $_string" $_file
-                echo "sed -i.blbak \"/^\s*UseDNS/d\" $_file" >> $BASELINE_RESTORE_FILE
+                sed -i "$ a $_string" $_file
             fi
-            _result=$(sed -nr "/^\s*UseDNS/p" $_file)
-            echo $_result
-            post_command="systemctl restart sshd"
+            _result=$(sed -nr "/^\s*UseDNS/Ip" $_file)
+            echo $_result | GREP_COLOR='1;33' grep --color .
             $post_command
-            echo "$post_command" >> $BASELINE_RESTORE_FILE
             echo "}}}"
         fi
     else checkitem_success; fi
@@ -911,6 +899,8 @@ fi
 if [[ $BASELINE_APPLY == yes ]]; then
     if [[ $(find $BASELINE_RESTORE_DIR -type f) == "" ]]; then
         rm -fr $BASELINE_RESTORE_DIR
+    else
+        sed -i '1i cd $(dirname $(readlink -f ${BASH_SOURCE[0]}))\nset -x' $BASELINE_RESTORE_DIR/restore.sh
     fi
 fi
 
