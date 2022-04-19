@@ -666,7 +666,7 @@ _enable=1
 _group=""
 if [[ $_enable == 1 ]]; then
     checkitem $_item
-    _result=$(find $(awk -v IGNORECASE=1 '$0~/^\s*[^#]/&&$2!~/swap|none|\/proc|\/dev/{print$2}' /etc/fstab) -xdev -path /var/lib/docker -prune -nouser -o -nogroup)
+    _result=$(find $(awk -v IGNORECASE=1 '$0~/^\s*[^#]/&&$2!~/swap|none|\/proc|\/dev/{print$2}' /etc/fstab) -xdev -path /var/lib/docker -prune -o \( -nouser -o -nogroup \) -print)
     if [[ -n $_result ]]; then
         checkitem_warn
         if [[ $OUTPUT_DETAIL == "yes" ]]; then
@@ -711,7 +711,7 @@ _enable=1
 _group=""
 if [[ $_enable == 1 ]]; then
     checkitem $_item
-    _result=$(find $(awk -v IGNORECASE=1 '$0~/^\s*[^#]/&&$2!~/swap|none|\/proc|\/dev/{print$2}' /etc/fstab) -xdev -path /var/lib/docker -prune \( -perm -4000 -o -perm -2000 \))
+    _result=$(find $(awk -v IGNORECASE=1 '$0~/^\s*[^#]/&&$2!~/swap|none|\/proc|\/dev/{print$2}' /etc/fstab) -xdev -path /var/lib/docker -prune -o \( -perm -4000 -o -perm -2000 \) -print)
     if [[ -n $_result ]]; then
         for i in $_result; do
             if command -v rpm > /dev/null; then
